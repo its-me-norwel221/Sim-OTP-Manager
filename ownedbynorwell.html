@@ -45,8 +45,9 @@ input[type=text],input[type=number],input[type=search]{background:var(--card);co
 </style></head>
 <body>
 <div class="top"><h1>📶 SIM OTP Manager</h1><button class="alt" id="menuBtn">☰ Menu</button>
-<div class="menu" id="menu"><div data-m="how">📖 How to use</div><div data-m="by">👤 Made by Norwell</div></div></div>
+<div class="menu" id="menu"><div data-m="how">📖 How to use</div><div data-m="name">✏️ Change name</div><div data-m="by">👤 Made by Norwell</div></div></div>
 <div id="modal"><div class="box" id="mbox"></div></div>
+<div class="card" id="greet" style="display:none"></div>
 <div class="bar">
   <button id="scanBtn">📷 Scan barcode</button>
   <button class="alt" id="dlBtn">💾 Save (.txt)</button>
@@ -56,10 +57,10 @@ input[type=text],input[type=number],input[type=search]{background:var(--card);co
   <video id="vid" playsinline muted></video>
   <div class="row" style="margin-top:8px"><span class="mu" id="scanMsg">Point the camera at the barcode…</span><button class="alt" id="stopBtn" style="margin-left:auto">Stop</button></div>
 </div>
-<div class="card row">
-  <input type="text" id="manual" inputmode="numeric" placeholder="Or type SIM number">
-  <input type="number" id="manualSlot" class="slot" min="1" max="24" placeholder="Box">
-  <button id="addBtn">Add</button>
+<div class="card">
+  <div class="row"><input type="text" id="carrier" list="carriers" placeholder="Anong SIM? (optional: Smart, Globe, DITO…)" style="flex:1"><datalist id="carriers"><option>Smart</option><option>TNT</option><option>Sun</option><option>Globe</option><option>TM</option><option>GOMO</option><option>DITO</option></datalist></div>
+  <div class="row" style="margin-top:8px"><input type="text" id="manual" inputmode="numeric" placeholder="Or type SIM number"><input type="number" id="manualSlot" class="slot" min="1" max="24" placeholder="Box"><button id="addBtn">Add</button></div>
+  <div class="mu" style="margin-top:6px">Ang napiling SIM sa taas ay mase-save kasama ng bawat na-scan o na-type na number.</div>
 </div>
 <div class="row" style="margin-bottom:10px">
   <input type="search" id="q" placeholder="Search number, box # or site (e.g. Grab)" style="flex:1">
@@ -91,12 +92,35 @@ function normNum(t){
   if(/^639\d{9}$/.test(d))return "0"+d.slice(2);
   return null;
 }
-function addSim(num,slot){
+function addSim(num,slot,carrier){
   num=normNum(num);
   if(!num){toast("Not a valid phone number (10 or 11 digits)");return false}
   if(sims.some(s=>s.number===num)){toast("Already in list: "+num);return false}
-  sims.push({id:Date.now()+Math.random(),number:num,slot:slot||"",used:[]});
+  sims.push({id:Date.now()+Math.random(),number:num,slot:slot||"",carrier:(carrier||"").trim(),used:[]});
   save();render();toast("Added "+num);return true;
+}
+function copyText(t){
+  const ok=()=>toast("Copied: "+t);
+  try{navigator.clipboard.writeText(t).then(ok,()=>fb())}catch(e){fb()}
+  function fb(){const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove();ok()}
+}
+const KEYN="sim_otp_name_v1";let userName=null;
+function loadName(){try{userName=localStorage.getItem(KEYN)}catch(e){}}
+function saveName(n){userName=n;try{localStorage.setItem(KEYN,n)}catch(e){}}
+function greet(){
+  const g=$("greet"),h=new Date().getHours(),tm=h<12?"morning":h<18?"afternoon":"evening";
+  const names=new Set();CATS.forEach(c=>c[1].forEach(x=>names.add(x[0])));const total=names.size;
+  let av=0,nums=0;sims.forEach(s=>{const u=s.used.filter(x=>names.has(x)).length;if(u<total){nums++;av+=total-u}});
+  g.style.display="block";
+  g.innerHTML=`Hello, good ${tm}${userName?", <b>"+userName.replace(/</g,"&lt;")+"</b>":""}! `+(sims.length?`You have <b>${av}</b> sites available across <b>${nums}</b> numbers for OTP today.`:"Add your first SIM to start.");
+}
+function askName(){
+  $("mbox").innerHTML='<h2>👋 Welcome!</h2><p>Ano ang pangalan mo?</p><input type="text" id="nm" placeholder="Your name" style="width:100%"><div class="row" style="margin-top:10px"><button id="nmok">Save</button><button class="alt" id="nmskip">Skip</button></div>';
+  $("modal").style.display="flex";
+  const done=v=>{saveName(v);$("modal").style.display="none";greet()};
+  $("nmok").onclick=()=>done($("nm").value.trim());
+  $("nmskip").onclick=()=>done("");
+  $("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("nmok").click()});
 }
 function render(){
   const q=$("q").value.trim().toLowerCase();
@@ -104,10 +128,10 @@ function render(){
   const arr=sims.slice().sort((a,b)=>(+a.slot||999)-(+b.slot||999));
   let html="",earn=0;
   sims.forEach(s=>s.used.forEach(u=>{CATS.forEach(c=>c[1].forEach(x=>{if(x[0]===u)earn+=x[1]}))}));
-  arr.filter(s=>!q||s.number.toLowerCase().includes(q)||String(s.slot)===q).forEach(s=>{
+  arr.filter(s=>!q||s.number.toLowerCase().includes(q)||(s.carrier||"").toLowerCase().includes(q)||String(s.slot)===q).forEach(s=>{
     const total=CATS.reduce((n,c)=>n+c[1].length,0);
     html+=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">
-    <div class="head" data-act="toggle"><div><div class="num">${s.number}</div><div class="mu">${s.used.length}/${total} sites used</div></div>
+    <div class="head" data-act="toggle"><div><div class="num">${s.number} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div><div class="mu">${s.carrier?s.carrier+" · ":""}${s.used.length}/${total} sites used</div></div>
     <div class="row" data-act="none"><span class="mu">Box</span><input type="number" class="slot ${slotCount[s.slot]>1?"dup":""}" min="1" max="24" value="${s.slot}" data-act="slot"><button class="del" data-act="del">🗑</button></div></div>
     <div class="sites">`;
     if(openId===s.id){CATS.forEach(c=>{html+=`<div class="cat">${c[0]}</div>`;c[1].forEach(x=>{const on=s.used.includes(x[0]);
@@ -118,15 +142,17 @@ function render(){
   if(q.length>=2){CATS.forEach(c=>c[1].forEach(x=>{if(x[0].toLowerCase().includes(q)){
     const av=arr.filter(s=>!s.used.includes(x[0]));
     sp+=`<div class="card"><div class="head" style="cursor:default"><b>${x[0]}</b><span class="pill">₱${x[1]} · ${av.length} available</span></div><div style="margin-top:8px">`+
-    (av.length?av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+s.slot+"</b> · ":""}${s.number}</span>`).join(""):'<span class="mu">No available number</span>')+`</div></div>`}}))}
+    (av.length?av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+s.slot+"</b> · ":""}${s.number} <span data-copy="${s.number}" title="Copy">📋</span></span>`).join(""):'<span class="mu">No available number</span>')+`</div></div>`}}))}
   $("sitePanel").innerHTML=sp;
   $("list").innerHTML=html||(sp?"":'<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Scan or type a number.</div>');
+  greet();
   $("stats").textContent=sims.length+" SIMs · ₱"+earn+" done";
 }
 $("list").addEventListener("click",e=>{
   const card=e.target.closest(".card");if(!card)return;
   const id=card.dataset.id,s=sims.find(x=>String(x.id)===id),act=e.target.dataset.act||(e.target.closest("[data-act]")||{dataset:{}}).dataset.act;
   if(!s)return;
+  if(act==="copy"){copyText(s.number);return}
   if(act==="del"){if(confirm("Delete "+s.number+"?")){sims=sims.filter(x=>x!==s);save();render()}}
   else if(act==="chk"){const n=e.target.dataset.site;s.used=e.target.checked?[...new Set([...s.used,n])]:s.used.filter(u=>u!==n);save();const y=window.scrollY;render();window.scrollTo(0,y)}
   else if(act==="toggle"){openId=openId===s.id?null:s.id;render()}
@@ -136,7 +162,7 @@ $("list").addEventListener("change",e=>{
     if(s){s.slot=e.target.value;save();render()}}
 });
 $("q").addEventListener("input",render);
-$("addBtn").onclick=()=>{if(addSim($("manual").value,$("manualSlot").value)){$("manual").value="";$("manualSlot").value=""}};
+$("addBtn").onclick=()=>{if(addSim($("manual").value,$("manualSlot").value,$("carrier").value)){$("manual").value="";$("manualSlot").value=""}};
 $("manual").addEventListener("keydown",e=>{if(e.key==="Enter")$("addBtn").click()});
 
 /* ---------- Scanner ---------- */
@@ -149,7 +175,7 @@ function onCode(text){
     if(/^89\d{16,18}$/.test(d)){$("scanMsg").textContent="That's the ICCID, not the phone number. Type the number printed on the tray (e.g. 0934 898 8797).";$("manual").focus();return}
     $("scanMsg").textContent="Ignored (not a phone number): "+text;return}
   beep();$("scanMsg").textContent="Scanned: "+num;
-  addSim(num,"");
+  addSim(num,"",$("carrier").value);
 }
 async function startScan(){
   $("scan").style.display="block";running=true;$("scanMsg").textContent="Starting camera…";
@@ -173,7 +199,7 @@ $("scanBtn").onclick=startScan;$("stopBtn").onclick=stopScan;
 /* ---------- Save / Restore ---------- */
 $("dlBtn").onclick=()=>{
   const d=new Date(),stamp=d.toISOString().slice(0,16).replace(/[-:T]/g,"");
-  const blob=new Blob([JSON.stringify({app:"sim-otp-manager",v:1,sims},null,1)],{type:"text/plain"});
+  const blob=new Blob([JSON.stringify({app:"sim-otp-manager",v:2,name:userName||"",sims},null,1)],{type:"text/plain"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sim-list-"+stamp+".txt";
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("Saved file");
 };
@@ -181,27 +207,30 @@ $("up").onchange=e=>{
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();r.onload=()=>{
     try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.sims))throw 0;
-      sims=d.sims.map(s=>({id:s.id||Date.now()+Math.random(),number:String(s.number),slot:s.slot||"",used:Array.isArray(s.used)?s.used:[]}));
-      save();render();toast("Restored "+sims.length+" SIMs");
+      sims=d.sims.map(s=>({id:s.id||Date.now()+Math.random(),number:String(s.number),slot:s.slot||"",carrier:s.carrier||"",used:Array.isArray(s.used)?s.used:[]}));
+      if(d.name&&!userName)saveName(d.name);save();render();toast("Restored "+sims.length+" SIMs");
     }catch(x){toast("Invalid file")}
     e.target.value="";
   };r.readAsText(f);
 };
-const HOW=`<h2>📖 How to use</h2><ol>
-<li><b>Add SIM:</b> pindutin ang <b>📷 Scan barcode</b> at itutok sa barcode ng phone number (Smart: yung 10-digit na nagsisimula sa 9). O i-type sa box at pindutin ang <b>Add</b>.</li>
-<li><b>Box #:</b> ilagay sa tabi ng number kung anong grid (1–24) ng sim tray. Pula = may kapareho ng box.</li>
-<li><b>OTP:</b> i-tap ang SIM para lumabas ang mga site. I-check ang site kapag nakuha na ang OTP para hindi madoble.</li>
-<li><b>Search:</b> mag-type ng number, box #, o pangalan ng site (hal. <i>Grab</i>) para makita kung aling mga number ang available pa sa site na iyon. I-tap ang number para buksan.</li>
-<li><b>Save:</b> awtomatiko ang save sa browser. Para sa backup, pindutin ang <b>💾 Save (.txt)</b>.</li>
-<li><b>Restore:</b> sa ibang phone, pindutin ang <b>📂 Restore</b> at piliin ang .txt file.</li>
+const HOW=`<h2>📖 Paano gamitin</h2><ol>
+<li><b>Pangalan:</b> sa unang buksan, itatanong ang pangalan mo. Lalabas ito sa greeting sa taas. Pwede mo itong palitan sa ☰ Menu → Change name.</li>
+<li><b>Greeting:</b> ipinapakita nito kung ilang site pa ang available at sa ilang number. Awtomatiko itong nagbabago kapag nagdagdag ka ng number o nag-check ng site.</li>
+<li><b>Anong SIM:</b> sa box sa taas, i-type o piliin ang SIM (Smart, Globe, DITO, atbp.). Optional ito. Mase-save ito kasama ng susunod mong idadagdag na number.</li>
+<li><b>Magdagdag ng SIM:</b> pindutin ang <b>📷 Scan barcode</b> at itutok sa barcode ng phone number (Smart: yung 10-digit na nagsisimula sa 9). O i-type ang number at pindutin ang <b>Add</b>.</li>
+<li><b>Box #:</b> ilagay sa tabi ng number kung anong grid (1–24) ng sim tray ito. Kulay pula ang box kung may kapareho.</li>
+<li><b>Mag-check ng site:</b> i-tap ang SIM para lumabas ang mga site. I-check ang site kapag nakuha mo na ang OTP para hindi madoble.</li>
+<li><b>Hanapin ang available:</b> sa search, i-type ang pangalan ng site (hal. <i>Grab</i>) para makita ang mga number na available pa. I-tap ang number para makita ito nang buo, at pindutin ang <b>📋 Copy</b> para ipadala sa buyer.</li>
+<li><b>Save:</b> awtomatikong nase-save ang lahat sa browser. Para sa backup, pindutin ang <b>💾 Save (.txt)</b>.</li>
+<li><b>Restore:</b> sa ibang phone, pindutin ang <b>📂 Restore</b> at piliin ang .txt file. Babalik lahat ng number, box, at check mark.</li>
 <li><b>DITO:</b> ICCID ang barcode nila, hindi ang number. I-type ang number na nakalimbag sa taas ng barcode.</li></ol>
 <button id="mclose">Close</button>`;
 function modal(h){$("mbox").innerHTML=h;$("modal").style.display="flex";$("mclose").onclick=()=>$("modal").style.display="none"}
 $("menuBtn").onclick=e=>{e.stopPropagation();$("menu").classList.toggle("show")};
 document.addEventListener("click",()=>$("menu").classList.remove("show"));
-$("menu").onclick=e=>{const m=e.target.dataset.m;if(m==="how")modal(HOW);if(m==="by")modal('<h2>👤 Made by Norwell</h2><p>SIM OTP Manager — made by <b>Norwell</b>.</p><button id="mclose">Close</button>')};
+$("menu").onclick=e=>{const m=e.target.dataset.m;if(m==="how")modal(HOW);if(m==="name")askName();if(m==="by")modal('<h2>👤 Made by Norwell</h2><p>SIM OTP Manager — made by <b>Norwell</b>.</p><button id="mclose">Close</button>')};
 $("modal").onclick=e=>{if(e.target.id==="modal")$("modal").style.display="none"};
-$("sitePanel").addEventListener("click",e=>{const c=e.target.closest("[data-open]");if(!c)return;const s=sims.find(x=>String(x.id)===c.dataset.open);if(s){$("q").value=s.number;openId=s.id;render();window.scrollTo(0,0)}});
-load();render();
+$("sitePanel").addEventListener("click",e=>{if(e.target.dataset.copy){e.stopPropagation();copyText(e.target.dataset.copy);return}const c=e.target.closest("[data-open]");if(!c)return;const s=sims.find(x=>String(x.id)===c.dataset.open);if(s){$("q").value=s.number;openId=s.id;render();window.scrollTo(0,0)}});
+load();loadName();render();if(userName===null)askName();
 </script>
 </body></html>

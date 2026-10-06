@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIM OTP Manager</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--tx:#eceef2;--mu:#9aa1ad;--ln:#2a2f39;--ac:#5b8cff;--ok:#34d399;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--tx:#eceef2;--mu:#9aa1ad;--ln:#2a2f39;--ac:#5b8cff;--ok:#34d399;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:12px;max-width:720px;margin:auto}
+h1{font-size:18px;margin:4px 0 10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+button,.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+button.alt,.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
+button.del{background:none;color:var(--bad);padding:4px 8px}
+input[type=text],input[type=number],input[type=search]{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;min-width:0}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+#scan{display:none}#scan video{width:100%;border-radius:10px;background:#000;max-height:260px;object-fit:cover}
+.row{display:flex;gap:8px;align-items:center}
+.row>input[type=text]{flex:1}
+.mu{color:var(--mu);font-size:13px}
+.num{font-size:19px;font-weight:700;letter-spacing:.5px}
+.slot{width:64px;text-align:center;font-weight:700}
+.slot.dup{border-color:var(--bad)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.sites{display:none;margin-top:10px;border-top:1px solid var(--ln);padding-top:8px}
+.card.open .sites{display:block}
+.cat{font-size:12px;font-weight:700;color:var(--mu);margin:10px 0 4px}
+.site{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:6px}
+.site input{width:20px;height:20px;accent-color:var(--ok)}
+.site.on{opacity:.55;text-decoration:line-through}
+.site .p{margin-left:auto;font-weight:700}
+.pill{background:var(--bg);border:1px solid var(--ln);border-radius:99px;padding:2px 9px;font-size:12px}
+.top{display:flex;justify-content:space-between;align-items:center;position:relative}
+.menu{position:absolute;right:0;top:40px;background:var(--card);border:1px solid var(--ln);border-radius:10px;display:none;z-index:8;min-width:170px;overflow:hidden}
+.menu.show{display:block}
+.menu div{padding:12px 14px;cursor:pointer}.menu div+div{border-top:1px solid var(--ln)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#modal .box{background:var(--card);border-radius:14px;padding:18px;max-width:440px;max-height:80%;overflow:auto;width:100%}
+#modal h2{margin:0 0 10px;font-size:17px}#modal ol{padding-left:20px;margin:0 0 12px}#modal li{margin-bottom:8px}
+.chip{display:inline-block;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:6px 9px;margin:3px 4px 3px 0;cursor:pointer;font-size:14px}
+.chip b{color:var(--ac)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:9}
+</style></head>
+<body>
+<div class="top"><h1>📶 SIM OTP Manager</h1><button class="alt" id="menuBtn">☰ Menu</button>
+<div class="menu" id="menu"><div data-m="how">📖 How to use</div><div data-m="by">👤 Made by Norwell</div></div></div>
+<div id="modal"><div class="box" id="mbox"></div></div>
+<div class="bar">
+  <button id="scanBtn">📷 Scan barcode</button>
+  <button class="alt" id="dlBtn">💾 Save (.txt)</button>
+  <label class="btn alt">📂 Restore<input type="file" id="up" accept=".txt,text/plain" hidden></label>
+</div>
+<div class="card" id="scan">
+  <video id="vid" playsinline muted></video>
+  <div class="row" style="margin-top:8px"><span class="mu" id="scanMsg">Point the camera at the barcode…</span><button class="alt" id="stopBtn" style="margin-left:auto">Stop</button></div>
+</div>
+<div class="card row">
+  <input type="text" id="manual" inputmode="numeric" placeholder="Or type SIM number">
+  <input type="number" id="manualSlot" class="slot" min="1" max="24" placeholder="Box">
+  <button id="addBtn">Add</button>
+</div>
+<div class="row" style="margin-bottom:10px">
+  <input type="search" id="q" placeholder="Search number, box # or site (e.g. Grab)" style="flex:1">
+  <span class="pill" id="stats"></span>
+</div>
+<div id="sitePanel"></div>
+<div id="list"></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+const CATS=[
+["FOOD AND DELIVERY",[["FOOD PANDA",10],["JOYRIDE",10],["LALAMOVE",9],["ANGKAS",8],["MOVE IT",7],["GRAB",7],["PICKUP COFFEE",7],["ZUS COFFEE",7]]],
+["SOCIAL MEDIA",[["TELEGRAM",15],["WECHAT",10],["TIKTOK",8],["WHATSAPP",7],["VIBER",7],["IG, FB, X",5],["DISCORD",5],["BUMBLE",5],["NIKI",5],["OKCUPID",5]]],
+["SHOPPING APPS",[["LAZADA",10],["SHOPEE",10],["TEMU",7],["AMAZON",7],["SHEIN",7],["ZALORA",6],["CAROUSELL",6],["UNIQLO",6]]],
+["E-WALLET",[["GCASH (+5 if 3c)",10],["MAYA",10],["PAYPAL",10],["COINSPH",10],["MARIBANK",7],["GOTYME",6],["GRABPAY",6],["CIMB",6]]],
+["CASINO SITES",[["BINGO PLUS",10],["GAMEZONE",10],["PH BINGO",5],["PHILSLOT",5],["TARA 777",5],["NEWSTAR",6],["PLAYTIME",8],["OKBET",5],["ARENA PLUS",5],["CASINO PLUS",5],["OTHER SITES/CASINO",5]]]
+];
+const KEY="sim_otp_manager_v1";
+let sims=[],openId=null;
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",2200)}
+function load(){try{const r=localStorage.getItem(KEY);if(r)sims=JSON.parse(r)||[]}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(sims))}catch(e){}}
+function normNum(t){
+  const d=String(t).replace(/\D/g,"");
+  if(/^9\d{9}$/.test(d))return "0"+d;
+  if(/^09\d{9}$/.test(d))return d;
+  if(/^639\d{9}$/.test(d))return "0"+d.slice(2);
+  return null;
+}
+function addSim(num,slot){
+  num=normNum(num);
+  if(!num){toast("Not a valid phone number (10 or 11 digits)");return false}
+  if(sims.some(s=>s.number===num)){toast("Already in list: "+num);return false}
+  sims.push({id:Date.now()+Math.random(),number:num,slot:slot||"",used:[]});
+  save();render();toast("Added "+num);return true;
+}
+function render(){
+  const q=$("q").value.trim().toLowerCase();
+  const slotCount={};sims.forEach(s=>{if(s.slot)slotCount[s.slot]=(slotCount[s.slot]||0)+1});
+  const arr=sims.slice().sort((a,b)=>(+a.slot||999)-(+b.slot||999));
+  let html="",earn=0;
+  sims.forEach(s=>s.used.forEach(u=>{CATS.forEach(c=>c[1].forEach(x=>{if(x[0]===u)earn+=x[1]}))}));
+  arr.filter(s=>!q||s.number.toLowerCase().includes(q)||String(s.slot)===q).forEach(s=>{
+    const total=CATS.reduce((n,c)=>n+c[1].length,0);
+    html+=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">
+    <div class="head" data-act="toggle"><div><div class="num">${s.number}</div><div class="mu">${s.used.length}/${total} sites used</div></div>
+    <div class="row" data-act="none"><span class="mu">Box</span><input type="number" class="slot ${slotCount[s.slot]>1?"dup":""}" min="1" max="24" value="${s.slot}" data-act="slot"><button class="del" data-act="del">🗑</button></div></div>
+    <div class="sites">`;
+    if(openId===s.id){CATS.forEach(c=>{html+=`<div class="cat">${c[0]}</div>`;c[1].forEach(x=>{const on=s.used.includes(x[0]);
+      html+=`<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${x[0].replace(/"/g,"&quot;")}" ${on?"checked":""}><span>${x[0]}</span><span class="p">₱${x[1]}</span></label>`})})}
+    html+=`</div></div>`;
+  });
+  let sp="";
+  if(q.length>=2){CATS.forEach(c=>c[1].forEach(x=>{if(x[0].toLowerCase().includes(q)){
+    const av=arr.filter(s=>!s.used.includes(x[0]));
+    sp+=`<div class="card"><div class="head" style="cursor:default"><b>${x[0]}</b><span class="pill">₱${x[1]} · ${av.length} available</span></div><div style="margin-top:8px">`+
+    (av.length?av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+s.slot+"</b> · ":""}${s.number}</span>`).join(""):'<span class="mu">No available number</span>')+`</div></div>`}}))}
+  $("sitePanel").innerHTML=sp;
+  $("list").innerHTML=html||(sp?"":'<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Scan or type a number.</div>');
+  $("stats").textContent=sims.length+" SIMs · ₱"+earn+" done";
+}
+$("list").addEventListener("click",e=>{
+  const card=e.target.closest(".card");if(!card)return;
+  const id=card.dataset.id,s=sims.find(x=>String(x.id)===id),act=e.target.dataset.act||(e.target.closest("[data-act]")||{dataset:{}}).dataset.act;
+  if(!s)return;
+  if(act==="del"){if(confirm("Delete "+s.number+"?")){sims=sims.filter(x=>x!==s);save();render()}}
+  else if(act==="chk"){const n=e.target.dataset.site;s.used=e.target.checked?[...new Set([...s.used,n])]:s.used.filter(u=>u!==n);save();const y=window.scrollY;render();window.scrollTo(0,y)}
+  else if(act==="toggle"){openId=openId===s.id?null:s.id;render()}
+});
+$("list").addEventListener("change",e=>{
+  if(e.target.dataset.act==="slot"){const card=e.target.closest(".card"),s=sims.find(x=>String(x.id)===card.dataset.id);
+    if(s){s.slot=e.target.value;save();render()}}
+});
+$("q").addEventListener("input",render);
+$("addBtn").onclick=()=>{if(addSim($("manual").value,$("manualSlot").value)){$("manual").value="";$("manualSlot").value=""}};
+$("manual").addEventListener("keydown",e=>{if(e.key==="Enter")$("addBtn").click()});
+
+/* ---------- Scanner ---------- */
+let stream=null,reader=null,running=false,last="",lastT=0;
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.frequency.value=900;o.connect(a.destination);o.start();setTimeout(()=>{o.stop();a.close()},120)}catch(e){}if(navigator.vibrate)navigator.vibrate(80)}
+function onCode(text){
+  const now=Date.now();if(text===last&&now-lastT<3000)return;last=text;lastT=now;
+  const num=normNum(text);
+  if(!num){const d=text.replace(/\D/g,"");
+    if(/^89\d{16,18}$/.test(d)){$("scanMsg").textContent="That's the ICCID, not the phone number. Type the number printed on the tray (e.g. 0934 898 8797).";$("manual").focus();return}
+    $("scanMsg").textContent="Ignored (not a phone number): "+text;return}
+  beep();$("scanMsg").textContent="Scanned: "+num;
+  addSim(num,"");
+}
+async function startScan(){
+  $("scan").style.display="block";running=true;$("scanMsg").textContent="Starting camera…";
+  try{
+    const v=$("vid");
+    if("BarcodeDetector" in window){
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+      v.srcObject=stream;await v.play();$("scanMsg").textContent="Point the camera at the barcode…";
+      const det=new BarcodeDetector();
+      (async function loop(){if(!running)return;try{const r=await det.detect(v);if(r.length)onCode(r[0].rawValue)}catch(e){}setTimeout(loop,200)})();
+    }else if(window.ZXing){
+      reader=new ZXing.BrowserMultiFormatReader();
+      $("scanMsg").textContent="Point the camera at the barcode…";
+      await reader.decodeFromConstraints({video:{facingMode:"environment"}},v,(res)=>{if(res)onCode(res.getText())});
+    }else throw new Error("No scanner available");
+  }catch(err){$("scanMsg").textContent="Camera unavailable. Open this file in your phone browser (Chrome) & allow camera, or type the number.";running=false}
+}
+function stopScan(){running=false;try{reader&&reader.reset()}catch(e){}reader=null;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$("scan").style.display="none"}
+$("scanBtn").onclick=startScan;$("stopBtn").onclick=stopScan;
+
+/* ---------- Save / Restore ---------- */
+$("dlBtn").onclick=()=>{
+  const d=new Date(),stamp=d.toISOString().slice(0,16).replace(/[-:T]/g,"");
+  const blob=new Blob([JSON.stringify({app:"sim-otp-manager",v:1,sims},null,1)],{type:"text/plain"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sim-list-"+stamp+".txt";
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast("Saved file");
+};
+$("up").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{
+    try{const d=JSON.parse(r.result);if(!d||!Array.isArray(d.sims))throw 0;
+      sims=d.sims.map(s=>({id:s.id||Date.now()+Math.random(),number:String(s.number),slot:s.slot||"",used:Array.isArray(s.used)?s.used:[]}));
+      save();render();toast("Restored "+sims.length+" SIMs");
+    }catch(x){toast("Invalid file")}
+    e.target.value="";
+  };r.readAsText(f);
+};
+const HOW=`<h2>📖 How to use</h2><ol>
+<li><b>Add SIM:</b> pindutin ang <b>📷 Scan barcode</b> at itutok sa barcode ng phone number (Smart: yung 10-digit na nagsisimula sa 9). O i-type sa box at pindutin ang <b>Add</b>.</li>
+<li><b>Box #:</b> ilagay sa tabi ng number kung anong grid (1–24) ng sim tray. Pula = may kapareho ng box.</li>
+<li><b>OTP:</b> i-tap ang SIM para lumabas ang mga site. I-check ang site kapag nakuha na ang OTP para hindi madoble.</li>
+<li><b>Search:</b> mag-type ng number, box #, o pangalan ng site (hal. <i>Grab</i>) para makita kung aling mga number ang available pa sa site na iyon. I-tap ang number para buksan.</li>
+<li><b>Save:</b> awtomatiko ang save sa browser. Para sa backup, pindutin ang <b>💾 Save (.txt)</b>.</li>
+<li><b>Restore:</b> sa ibang phone, pindutin ang <b>📂 Restore</b> at piliin ang .txt file.</li>
+<li><b>DITO:</b> ICCID ang barcode nila, hindi ang number. I-type ang number na nakalimbag sa taas ng barcode.</li></ol>
+<button id="mclose">Close</button>`;
+function modal(h){$("mbox").innerHTML=h;$("modal").style.display="flex";$("mclose").onclick=()=>$("modal").style.display="none"}
+$("menuBtn").onclick=e=>{e.stopPropagation();$("menu").classList.toggle("show")};
+document.addEventListener("click",()=>$("menu").classList.remove("show"));
+$("menu").onclick=e=>{const m=e.target.dataset.m;if(m==="how")modal(HOW);if(m==="by")modal('<h2>👤 Made by Norwell</h2><p>SIM OTP Manager — made by <b>Norwell</b>.</p><button id="mclose">Close</button>')};
+$("modal").onclick=e=>{if(e.target.id==="modal")$("modal").style.display="none"};
+$("sitePanel").addEventListener("click",e=>{const c=e.target.closest("[data-open]");if(!c)return;const s=sims.find(x=>String(x.id)===c.dataset.open);if(s){$("q").value=s.number;openId=s.id;render();window.scrollTo(0,0)}});
+load();render();
+</script>
+</body></html>

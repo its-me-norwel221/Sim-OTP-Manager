@@ -55,10 +55,11 @@ body.desk{max-width:none;padding:12px 20px}
 #sheet input[type=checkbox]{width:18px;height:18px;accent-color:var(--ok)}
 #sheet .slot{width:48px;padding:4px}
 #sheet tr:hover td{filter:brightness(.97)}
-.slotb{display:inline-block;min-width:38px;text-align:center;font-weight:700;padding:8px 6px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);user-select:none;cursor:default}
+.slotb{display:inline-block;min-width:38px;text-align:center;font-weight:700;padding:7px 6px;border:2px solid var(--ln);border-radius:8px;background:var(--bg);user-select:none;cursor:default}
 .slotb.q{color:var(--bad);border-style:dashed;cursor:pointer}
 .slotb.dup{border-color:var(--bad)}
 #sheet .slotb{padding:3px 6px;min-width:34px}
+.nb{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:9}
 </style></head>
 <body>
@@ -111,12 +112,17 @@ function normNum(t){
   if(/^639\d{9}$/.test(d))return "0"+d.slice(2);
   return null;
 }
+function fmt(n){return String(n).replace(/^(\d{4})(\d{3})(\d{4})$/,"$1-$2-$3")}
+const NET={smart:["#16a34a","#fff"],tnt:["#eab308","#1a1d23"],dito:["#f97316","#fff"],tm:["#dc2626","#fff"],gomo:["#8b5cf6","#fff"],globe:["#2563eb","#fff"],sun:["#0891b2","#fff"]};
+function slotBox(s){const k=NET[(s.carrier||"").trim().toLowerCase()];return s.slot?`<span class="slotb"${k?` style="border-color:${k[0]}"`:""}>${s.slot}</span>`:`<span class="slotb q" data-act="edit" title="No box yet — tap to set">?</span>`}
+function netBadge(c){c=(c||"").trim();if(!c)return"";const k=NET[c.toLowerCase()]||["#6b7280","#fff"];return `<span class="nb" style="background:${k[0]};color:${k[1]}">${c.replace(/</g,"&lt;")}</span>`}
+function matchSim(s,q){if(!q)return true;const qd=q.replace(/[\s-]/g,"");return (qd&&s.number.includes(qd))||(s.carrier||"").toLowerCase().includes(q)||String(s.slot)===q}
 function addSim(num,slot,carrier){
   num=normNum(num);
   if(!num){toast("Not a valid phone number (10 or 11 digits)");return false}
   if(sims.some(s=>s.number===num)){toast("Already in list: "+num);return false}
   sims.push({id:Date.now()+Math.random(),number:num,slot:slot||"",carrier:(carrier||"").trim(),used:[]});
-  save();render();toast("Added "+num);return true;
+  save();render();toast("Added "+fmt(num));return true;
 }
 function copyText(t){
   const ok=()=>toast("Copied: "+t);
@@ -149,14 +155,14 @@ function renderSheet(){
   if(!desk){sh.style.display="none";$("list").style.display="";return}
   $("list").style.display="none";sh.style.display="block";
   const q=$("q").value.trim().toLowerCase(),sy=sh.scrollTop,sx=sh.scrollLeft;
-  const arr=sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0)).filter(s=>!q||s.number.toLowerCase().includes(q)||(s.carrier||"").toLowerCase().includes(q)||String(s.slot)===q);
+  const arr=sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0)).filter(s=>matchSim(s,q));
   const cnt={};sims.forEach(s=>{if(s.slot)cnt[s.slot]=(cnt[s.slot]||0)+1});
   const total=CATS.reduce((n,c)=>n+c[1].length,0);
   let h='<table><thead><tr><th class="c1" rowspan="2">Box</th><th class="c2" rowspan="2">Number</th><th rowspan="2">SIM</th>'+CATS.map(c=>`<th colspan="${c[1].length}">${c[0]}</th>`).join("")+'<th rowspan="2">Used</th><th rowspan="2"></th></tr><tr>';
   CATS.forEach(c=>c[1].forEach(x=>{h+=`<th class="${q.length>=2&&x[0].toLowerCase().includes(q)?"hl":""}">${x[0]}<br>₱${x[1]}</th>`}));
   h+='</tr></thead><tbody>';
   arr.forEach(s=>{
-    h+=`<tr data-id="${s.id}"><td class="c1"><span class="slotb ${s.slot?(cnt[s.slot]>1?"dup":""):"q"}" ${s.slot?"":'data-act="edit" title="No box yet — tap to set"'}>${s.slot||"?"}</span></td><td class="c2"><b>${s.number}</b> <button class="alt" data-act="copy" style="padding:2px 7px;font-size:12px">📋</button></td><td>${s.carrier||""}</td>`;
+    h+=`<tr data-id="${s.id}"><td class="c1">${slotBox(s)}</td><td class="c2"><b>${fmt(s.number)}</b> <button class="alt" data-act="copy" style="padding:2px 7px;font-size:12px">📋</button></td><td>${netBadge(s.carrier)}</td>`;
     CATS.forEach(c=>c[1].forEach(x=>{const on=s.used.includes(x[0]);h+=`<td class="${on?"on":""}"><input type="checkbox" data-site="${x[0].replace(/"/g,"&quot;")}" ${on?"checked":""}></td>`}));
     h+=`<td>${s.used.length}/${total}</td><td><button class="alt" data-act="edit" style="padding:2px 7px;font-size:12px">✏️</button> <button class="del" data-act="del">🗑</button></td></tr>`;
   });
@@ -175,7 +181,7 @@ $("sheet").addEventListener("change",e=>{
   if(e.target.dataset.act==="slot"){s.slot=e.target.value;save();render()}
   else if(e.target.dataset.site){const n=e.target.dataset.site;s.used=e.target.checked?[...new Set([...s.used,n])]:s.used.filter(u=>u!==n);save();render()}
 });
-function cleanNum(v){let d=v.replace(/\D/g,"");if(/^639/.test(d)&&d.length>=12)d="0"+d.slice(2);return d.slice(0,11)}
+function cleanNum(v){let d=v.replace(/\D/g,"");if(/^639/.test(d)&&d.length>=12)d="0"+d.slice(2);if(d[0]==="9")d="0"+d;return d.slice(0,11)}
 function editSim(id){
   const s=sims.find(x=>x.id===id);if(!s)return;
   $("mbox").innerHTML=`<h2>✏️ Edit SIM</h2>
@@ -202,11 +208,11 @@ function render(){
   const arr=sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0));
   let html="",earn=0;
   sims.forEach(s=>s.used.forEach(u=>{CATS.forEach(c=>c[1].forEach(x=>{if(x[0]===u)earn+=x[1]}))}));
-  arr.filter(s=>!q||s.number.toLowerCase().includes(q)||(s.carrier||"").toLowerCase().includes(q)||String(s.slot)===q).forEach(s=>{
+  arr.filter(s=>matchSim(s,q)).forEach(s=>{
     const total=CATS.reduce((n,c)=>n+c[1].length,0);
     html+=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">
-    <div class="head" data-act="toggle"><div><div class="num">${s.number} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div><div class="mu">${s.carrier?s.carrier+" · ":""}${s.used.length}/${total} sites used</div></div>
-    <div class="row" data-act="none"><span class="mu">Box</span><span class="slotb ${s.slot?(slotCount[s.slot]>1?"dup":""):"q"}" ${s.slot?"":'data-act="edit" title="No box yet — tap to set"'}>${s.slot||"?"}</span><button class="alt" data-act="edit" style="padding:6px 9px" title="Edit">✏️</button><button class="del" data-act="del">🗑</button></div></div>
+    <div class="head" data-act="toggle"><div><div class="num">${fmt(s.number)} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div><div class="mu">${netBadge(s.carrier)}${s.used.length}/${total} sites used</div></div>
+    <div class="row" data-act="none"><span class="mu">Box</span>${slotBox(s)}<button class="alt" data-act="edit" style="padding:6px 9px" title="Edit">✏️</button><button class="del" data-act="del">🗑</button></div></div>
     <div class="sites">`;
     if(openId===s.id){CATS.forEach(c=>{html+=`<div class="cat">${c[0]}</div>`;c[1].forEach(x=>{const on=s.used.includes(x[0]);
       html+=`<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${x[0].replace(/"/g,"&quot;")}" ${on?"checked":""}><span>${x[0]}</span><span class="p">₱${x[1]}</span></label>`})})}
@@ -216,7 +222,7 @@ function render(){
   if(q.length>=2){CATS.forEach(c=>c[1].forEach(x=>{if(x[0].toLowerCase().includes(q)){
     const av=arr.filter(s=>!s.used.includes(x[0]));
     sp+=`<div class="card"><div class="head" style="cursor:default"><b>${x[0]}</b><span class="pill">₱${x[1]} · ${av.length} available</span></div><div style="margin-top:8px">`+
-    (av.length?av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+s.slot+"</b> · ":""}${s.number} <span data-copy="${s.number}" title="Copy">📋</span></span>`).join(""):'<span class="mu">No available number</span>')+`</div></div>`}}))}
+    (av.length?av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+s.slot+"</b> · ":""}${fmt(s.number)} <span data-copy="${s.number}" title="Copy">📋</span></span>`).join(""):'<span class="mu">No available number</span>')+`</div></div>`}}))}
   $("sitePanel").innerHTML=sp;
   $("list").innerHTML=html||(sp?"":'<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Scan or type a number.</div>');
   renderSheet();greet();
@@ -238,10 +244,8 @@ $("list").addEventListener("change",e=>{
 });
 $("q").addEventListener("input",render);
 function fixManual(){
-  let d=$("manual").value.replace(/\D/g,"");
-  if(/^639/.test(d)&&d.length>=12)d="0"+d.slice(2);
-  d=d.slice(0,11);$("manual").value=d;
-  const c=$("cnt");c.textContent=d.length+"/11";c.style.color=(d.length===11||(d.length===10&&d[0]==="9"))?"var(--ok)":"";
+  const d=cleanNum($("manual").value);$("manual").value=d;
+  const c=$("cnt");c.textContent=d.length+"/11";c.style.color=d.length===11?"var(--ok)":"";
 }
 $("manual").addEventListener("input",fixManual);
 $("addBtn").onclick=()=>{if(addSim($("manual").value,$("manualSlot").value,$("carrier").value)){$("manual").value="";$("manualSlot").value="";fixManual()}};
@@ -268,7 +272,7 @@ $("micBtn").onclick=()=>{
   $("micBtn").textContent="🔴";toast("Listening… say the number");
   rec.onresult=e=>{let t="";for(const r of e.results)t+=r[0].transcript+" ";const d=parseSpoken(t);if(d){$("manual").value=d;fixManual()}};
   rec.onerror=e=>{toast(e.error==="not-allowed"||e.error==="service-not-allowed"?"Allow microphone access first":"Voice error: "+e.error)};
-  rec.onend=()=>{rec=null;$("micBtn").textContent="🗣️";const n=normNum($("manual").value);if(n)toast("Heard: "+n+" — press Add")};
+  rec.onend=()=>{rec=null;$("micBtn").textContent="🗣️";const n=normNum($("manual").value);if(n)toast("Heard: "+fmt(n)+" — press Add")};
   try{rec.start()}catch(e){rec=null;$("micBtn").textContent="🗣️"}
 };
 $("manual").addEventListener("keydown",e=>{if(e.key==="Enter")$("addBtn").click()});
@@ -329,8 +333,10 @@ const HOW=`<h2>📖 Paano gamitin</h2><ol>
 <li><b>Voice input:</b> pindutin ang 🗣️ sa tabi ng number box at sabihin ang number (hal. "zero nine five five…" o "siyam, apat…"). Pwede ang "double" at "triple". Susuriin ang lumabas na number, saka pindutin ang <b>Add</b>. Chrome ang pinakamainam gamitin.</li>
 <li><b>Limit:</b> 11 digits lang ang tatanggapin sa input para walang sobra kapag nagkamali ng type.</li>
 <li><b>Ayos ng listahan:</b> ang pinakabagong idinagdag na number ay laging nasa taas, at ang mga luma ay nasa ibaba.</li>
+<li><b>Kulay ng network:</b> may badge ang bawat SIM: Smart berde, TNT dilaw, DITO orange, TM pula, GOMO lila, Globe asul, Sun teal. Ibang network ay kulay abo.</li>
+<li><b>Format ng number:</b> makikita ang number na may gitling (0955-360-3320). Kapag nag-type, nagsalita o nag-scan ng number na nagsisimula sa 9, awtomatikong nilalagyan ng 0. Ang 📋 Copy ay walang gitling para madaling i-paste.</li>
 <li><b>Edit:</b> pindutin ang ✏️ sa tabi ng Box para i-edit ang number, network (o idagdag kung wala pa), at box. Susuriin kung valid at hindi pa ito nasa listahan.</li>
-<li><b>Box #:</b> ang grid (1–24) ng sim tray kung nasaan ang SIM. Hindi ito pwedeng i-click para hindi magalaw nang hindi sinasadya. Kung walang box, "?" ang lalabas. I-tap ang "?" o ang ✏️ para magtakda o magpalit. Kulay pula ang box kung may kapareho.</li>
+<li><b>Box #:</b> ang grid (1–24) ng sim tray kung nasaan ang SIM. Hindi ito pwedeng i-click para hindi magalaw nang hindi sinasadya. Kung walang box, "?" ang lalabas. I-tap ang "?" o ang ✏️ para magtakda o magpalit. Pwedeng maraming SIM sa iisang box. Ang linya ng box ay kulay ng network ng SIM (hal. dilaw kung TNT).</li>
 <li><b>Mag-check ng site:</b> i-tap ang SIM para lumabas ang mga site. I-check ang site kapag nakuha mo na ang OTP para hindi madoble.</li>
 <li><b>Hanapin ang available:</b> sa search, i-type ang pangalan ng site (hal. <i>Grab</i>) para makita ang mga number na available pa. I-tap ang number para makita ito nang buo, at pindutin ang <b>📋 Copy</b> para ipadala sa buyer.</li>
 <li><b>Desktop mode:</b> sa ☰ Menu → Desktop mode, lalapad ang page at lalabas ang lahat ng number at site sa isang table na parang Google Sheet. I-check lang ang cell ng site. Pindutin ulit para bumalik sa Mobile mode.</li>
@@ -341,7 +347,9 @@ const HOW=`<h2>📖 Paano gamitin</h2><ol>
 <li><b>DITO:</b> ICCID ang barcode nila, hindi ang number. I-type ang number na nakalimbag sa taas ng barcode.</li></ol>
 <button id="mclose">Close</button>`;
 const LOG=`<h2>📝 Changelog</h2>
-<div class="cat">v1.9 — Latest</div><ul><li>Ang pinakabagong idinagdag na number ay nasa taas ng listahan, at ang mga luma ay nasa ibaba</li></ul>
+<div class="cat">v2.1 — Latest</div><ul><li>Inalis ang pulang kulay ng box kapag may higit sa isang SIM dito</li><li>Ang linya (border) ng Box ay kulay ng network ng SIM, hal. dilaw para sa TNT, berde para sa Smart</li></ul>
+<div class="cat">v2.0</div><ul><li>Color badge ng network sa bawat SIM: Smart berde, TNT dilaw, DITO orange, TM pula, GOMO lila, Globe asul, Sun teal</li><li>Naka-format ang number na may gitling (hal. 0955-360-3320) sa listahan, table at search results</li><li>Awtomatikong nilalagyan ng 0 sa unahan kapag 9 ang unang digit (type, boses o scan)</li></ul>
+<div class="cat">v1.9</div><ul><li>Ang pinakabagong idinagdag na number ay nasa taas ng listahan, at ang mga luma ay nasa ibaba</li></ul>
 <div class="cat">v1.8</div><ul><li>Hindi na pwedeng i-click o i-type ang Box sa listahan at sa table. Numero lang ang makikita</li><li>Kapag walang box ang SIM, "?" ang lalabas. Ang "?" lang ang pwedeng i-tap para magtakda ng box</li><li>Ang pagbabago ng box ay sa ✏️ Edit lang</li></ul>
 <div class="cat">v1.7</div><ul><li>✏️ Edit button: pwedeng i-edit ang number, network (o idagdag kung wala), at box ng bawat SIM</li></ul>
 <div class="cat">v1.6</div><ul><li>Ginawang 🗣️ ang icon ng voice input</li><li>Nadagdag ang Changelog sa menu</li><li>Nadagdag ang Dark mode / Light mode</li></ul>

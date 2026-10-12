@@ -5,173 +5,465 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SIM OTP Manager</title>
 <style>
-:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#1a1d24;--tx:#eceef2;--mu:#9aa1ad;--ln:#2a2f39;--ac:#5b8cff;--ok:#34d399;--bad:#f87171}}
-:root[data-theme="dark"]{--bg:#0f1115;--card:#1a1d24;--tx:#eceef2;--mu:#9aa1ad;--ln:#2a2f39;--ac:#5b8cff;--ok:#34d399;--bad:#f87171}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root{box-sizing:border-box;--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--simc:#1a1d23;--glass:rgba(255,255,255,.55);--glassb:rgba(255,255,255,.6);color-scheme:light}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:12px;max-width:720px;margin:auto}
-h1{font-size:18px;margin:4px 0 10px}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));max-width:900px;transition:max-width .2s}
+body.wide{max-width:none}
+h1{font-size:18px;margin:0}
 button,.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
-button.alt,.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
+button.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
 button.del{background:none;color:var(--bad);padding:4px 8px}
-input[type=text],input[type=number],input[type=search]{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;min-width:0}
-.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
-#scan{display:none}#scan video{width:100%;border-radius:10px;background:#000;max-height:260px;object-fit:cover}
+input[type=text],input[type=number],input[type=search],select,textarea{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;min-width:0}
+/* Password fields are plain text inputs with masked characters, so Chrome's password manager doesn't interfere */
+.pwf{-webkit-text-security:disc;text-security:disc}
+select{cursor:pointer}
+textarea{width:100%;min-height:84px;resize:vertical}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .row{display:flex;gap:8px;align-items:center}
-.row>input[type=text]{flex:1}
+.pill{background:var(--card);border:1px solid var(--ln);border-radius:99px;padding:2px 9px;font-size:12px;white-space:nowrap}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:6px;overflow-x:auto;background:var(--bg);padding:6px 0 8px;margin-bottom:6px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:99px;padding:8px 13px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.pane{display:none}
+.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+#scan{display:none}
+#scan video{width:100%;border-radius:10px;background:#000;max-height:260px;object-fit:cover}
 .mu{color:var(--mu);font-size:13px}
 .num{font-size:19px;font-weight:700;letter-spacing:.5px}
-.slot{width:64px;text-align:center;font-weight:700}
+.slot{width:72px;text-align:center;font-weight:700}
 .head{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
 .sites{display:none;margin-top:10px;border-top:1px solid var(--ln);padding-top:8px}
 .card.open .sites{display:block}
 .cat{font-size:12px;font-weight:700;color:var(--mu);margin:10px 0 4px}
 .site{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:6px;cursor:pointer}
-.site input{width:20px;height:20px;accent-color:var(--ok)}
+.site input{width:20px;height:20px;accent-color:var(--ok);flex:0 0 auto}
 .site.on{opacity:.55;text-decoration:line-through}
 .site .p{margin-left:auto;font-weight:700}
-.pill{background:var(--bg);border:1px solid var(--ln);border-radius:99px;padding:2px 9px;font-size:12px}
-.top{display:flex;justify-content:space-between;align-items:center;position:relative}
-.menu{position:absolute;right:0;top:40px;background:var(--card);border:1px solid var(--ln);border-radius:10px;display:none;z-index:8;min-width:170px;overflow:hidden}
-.menu.show{display:block}
-.menu div{padding:12px 14px;cursor:pointer}.menu div+div{border-top:1px solid var(--ln)}
-#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
-#modal .box{background:var(--card);border-radius:14px;padding:18px;max-width:440px;max-height:80%;overflow:auto;width:100%}
-#modal h2{margin:0 0 10px;font-size:17px}
-#modal ol{padding-left:20px;margin:0 0 12px}
-#modal li{margin-bottom:8px}
-#modal .notice-img{display:block;width:100%;border-radius:10px;margin-bottom:12px;max-height:280px;object-fit:contain}
+.chk2{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer}
+.chk2 input{width:18px;height:18px;accent-color:var(--ok)}
 .chip{display:inline-block;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:6px 9px;margin:3px 4px 3px 0;cursor:pointer;font-size:14px}
 .chip b{color:var(--ac)}
-body.desk{max-width:none;padding:12px 20px}
-#sheet{display:none;overflow:auto;max-height:72vh;border:1px solid var(--ln);border-radius:10px;background:var(--card);margin-bottom:10px}
-#sheet table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%}
-#sheet th,#sheet td{border-right:1px solid var(--ln);border-bottom:1px solid var(--ln);padding:6px 8px;white-space:nowrap;text-align:center;background:var(--card)}
-#sheet thead th{position:sticky;top:0;z-index:2;background:var(--bg);line-height:1.2}
-#sheet thead tr:nth-child(2) th{top:31px}
-#sheet .c1,#sheet .c2{position:sticky;z-index:1}
-#sheet .c1{left:0;min-width:64px;max-width:64px}
-#sheet .c2{left:64px;text-align:left}
-#sheet thead .c1,#sheet thead .c2{z-index:3}
-#sheet td.on{background:rgba(22,163,74,.2)}
-#sheet th.hl{background:var(--ac);color:#fff}
-#sheet input[type=checkbox]{width:18px;height:18px;accent-color:var(--ok)}
-#sheet tr:hover td{filter:brightness(.97)}
-.slotb{display:inline-block;min-width:38px;text-align:center;font-weight:700;padding:7px 6px;border:2px solid var(--ln);border-radius:8px;background:var(--bg);user-select:none}
-.slotb.q{color:var(--bad);border-style:dashed;cursor:pointer}
-#sheet .slotb{padding:3px 6px;min-width:34px}
 .nb{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:9;max-width:90%;text-align:center}
+.slotb{display:inline-block;min-width:38px;text-align:center;font-weight:700;padding:7px 6px;border:2px solid var(--ln);border-radius:8px;background:var(--bg);user-select:none;cursor:pointer}
+.slotb.q{color:var(--bad);border-style:dashed}
+.na{color:var(--mu);opacity:.5;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-bottom:10px}
+.stat{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px}
+.stat b{display:block;font-size:20px;margin-top:2px}
+.brow{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:14px}
+.brow span{min-width:120px}
+.track{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden}
+.track div{height:100%;background:var(--ac)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.pal{background:var(--bg);color:var(--tx);border:1px solid var(--ln);display:flex;align-items:center;gap:6px;font-weight:600}
+.pal.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac) inset}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--ln);flex:0 0 auto}
+
+/* Number list: mobile cards */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 8px}
+.sg .cat{grid-column:1/-1}
+
+/* Number list: laptop/PC table, fits the screen */
+.nl-comp{overflow:hidden;width:100%}
+.nl-comp table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(9px,.8vw,12px)}
+.nl-comp th,.nl-comp td{border:1px solid var(--ln);padding:2px 1px;text-align:center;vertical-align:middle;word-break:break-word;background:var(--card)}
+.nl-comp thead th{background:var(--bg);line-height:1.1}
+.nl-comp .c-box{width:4%}
+.nl-comp .c-num{width:12%}
+.nl-comp .c-sim{width:6%}
+.nl-comp .c-used{width:5%}
+.nl-comp th.grp{font-size:.95em;white-space:normal}
+.nl-comp th.sv{padding:4px 0;height:1px}
+.vtxt{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;display:inline-block;margin:0 auto;line-height:1.05}
+.nl-comp .cc{display:flex;justify-content:center;align-items:center;cursor:pointer;margin:0}
+.nl-comp .cc input{width:100%;max-width:14px;height:auto;margin:0;accent-color:var(--ok)}
+.nl-comp .sm{font-size:.95em;white-space:normal}
+.nl-comp .slotb{min-width:0;padding:1px 2px;font-size:.95em;border-width:1px;border-radius:4px}
+.nl-comp b{cursor:pointer;word-break:break-all}
+
+/* Glass menu */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.12);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:35}
+#scrim.show{opacity:1;pointer-events:auto}
+.menu{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));right:12px;width:250px;border-radius:18px;padding:6px;background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);border:1px solid var(--glassb);box-shadow:0 14px 40px rgba(0,0,0,.18);z-index:40;opacity:0;transform:translateY(-12px) scale(.96);transform-origin:top right;pointer-events:none;transition:opacity .25s ease,transform .32s cubic-bezier(.2,.8,.2,1)}
+.menu.show{opacity:1;transform:none;pointer-events:auto}
+.menu .mi{padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:500}
+.menu .mi:hover,.menu .mi:active{background:rgba(127,127,127,.16)}
+.menu .ver{font-size:11px;color:var(--mu);padding:8px 12px 6px;border-top:1px solid var(--ln);margin-top:4px}
+
+/* Modal */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:90}
+#modal .box{background:var(--card);border-radius:14px;padding:18px;max-width:440px;max-height:80%;overflow:auto;width:100%;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
+#modal h2{margin:0 0 10px;font-size:17px}
+#modal h3{margin:10px 0 6px;font-size:15px}
+#modal ol,#modal ul{padding-left:20px;margin:0 0 12px}
+#modal li{margin-bottom:6px}
+#modal p{margin:0 0 10px}
+.creator{display:flex;align-items:center;gap:10px;margin-top:6px}
+.avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;border:2px solid var(--ln)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+
+/* Lock screen */
+#lock{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:80}
+#lock .lbox{width:100%;max-width:360px;text-align:center}
+#lock h2{margin:6px 0 4px;font-size:18px}
+#lock input{width:100%;margin-top:14px;text-align:center;font-size:17px}
+.linkbtn{background:none;border:0;color:var(--ac);padding:10px 4px;font:inherit;font-weight:600;cursor:pointer;margin-top:6px}
+.errmsg{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
 </style>
 </head>
 <body>
 
 <div class="top">
   <h1>📶 SIM OTP Manager</h1>
-  <button class="alt" id="menuBtn">☰ Menu</button>
-  <div class="menu" id="menu">
-    <div data-m="how">📖 How to use</div>
-    <div data-m="desk" id="deskItem">🖥️ Desktop mode</div>
-    <div data-m="name">✏️ Change name</div>
-    <div data-m="theme" id="themeItem">🌙 Dark mode</div>
-    <div data-m="log">📝 Changelog</div>
-    <div data-m="by">👤 Made by Norwell</div>
+  <div class="row">
+    <span class="pill" id="stats"></span>
+    <button class="alt" id="menuBtn">☰</button>
   </div>
 </div>
+
+<div id="scrim"></div>
+<div class="menu" id="menu">
+  <div class="mi" data-m="tut">🎓 Tutorial</div>
+  <div class="mi" data-m="how">📖 How to use</div>
+  <div class="mi" data-m="name">✏️ Change name</div>
+  <div class="mi" data-m="theme">🌙 Dark mode</div>
+  <div class="mi" data-m="pw" id="mPw">🔒 Set password</div>
+  <div class="mi" data-m="lock" id="mLock" style="display:none">🔒 Lock now</div>
+  <div class="mi" data-m="save">💾 Save backup (.txt)</div>
+  <div class="mi" data-m="restore">📂 Restore backup</div>
+  <div class="mi" data-m="log">📝 Changelog</div>
+  <div class="mi" data-m="who">👤 Who made?</div>
+  <div class="ver" id="verTxt"></div>
+</div>
+<input type="file" id="up" accept=".txt,text/plain" hidden>
+
+<nav class="tabs">
+  <button class="tab" data-tab="inv">📥 Inventory</button>
+  <button class="tab" data-tab="look">🔍 Lookup</button>
+  <button class="tab" data-tab="num">🔢 Number List</button>
+  <button class="tab" data-tab="ana">📊 Analytics</button>
+  <button class="tab" data-tab="brand">🎨 Brand</button>
+</nav>
 
 <div id="modal"><div class="box" id="mbox"></div></div>
-<div class="card" id="greet" style="display:none"></div>
 
-<div class="bar">
-  <button id="scanBtn">📷 Scan barcode</button>
-  <button class="alt" id="dlBtn">💾 Save (.txt)</button>
-  <label class="btn alt">📂 Restore<input type="file" id="up" accept=".txt,text/plain" hidden></label>
-</div>
-
-<div class="card" id="scan">
-  <video id="vid" playsinline muted></video>
-  <div class="row" style="margin-top:8px">
-    <span class="mu" id="scanMsg">Point the camera at the barcode…</span>
-    <button class="alt" id="stopBtn" style="margin-left:auto">Stop</button>
+<div id="lock">
+  <div class="lbox">
+    <div style="font-size:40px">🔒</div>
+    <h2>SIM OTP Manager is locked</h2>
+    <p class="mu">Enter your password to continue.</p>
+    <input type="text" id="lockPw" class="pwf" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">
+    <div class="row" style="margin-top:10px;justify-content:center"><button id="lockGo" style="min-width:140px">Unlock</button></div>
+    <button class="linkbtn" id="lockForgot">Forgot password?</button>
+    <div class="errmsg" id="lockMsg"></div>
   </div>
 </div>
 
-<div class="card">
-  <div class="row">
-    <input type="text" id="carrier" list="carriers" placeholder="Anong SIM? (optional: Smart, Globe, DITO…)" style="flex:1">
-    <datalist id="carriers">
-      <option>Smart</option><option>TNT</option><option>Sun</option><option>Globe</option>
-      <option>TM</option><option>GOMO</option><option>DITO</option>
-    </datalist>
-  </div>
-  <div class="row" style="margin-top:8px">
-    <input type="text" id="manual" inputmode="numeric" maxlength="14" placeholder="Type or speak number" style="flex:1">
-    <button class="alt" id="micBtn" title="Voice input" style="padding:10px">🗣️</button>
-    <input type="number" id="manualSlot" class="slot" min="1" placeholder="Box">
-    <button id="addBtn">Add</button>
-  </div>
-  <div class="mu" style="margin-top:6px">Digits: <b id="cnt">0/11</b> · Ang napiling SIM sa taas ay mase-save kasama ng bawat na-scan o na-type na number.</div>
-</div>
+<!-- INVENTORY -->
+<section class="pane" id="p-inv">
+  <div class="card" id="greet" style="display:none"></div>
 
-<div class="row" style="margin-bottom:10px">
-  <input type="search" id="q" placeholder="Number, box 30, sim TNT, or site (e.g. Grab)" style="flex:1">
-  <span class="pill" id="stats"></span>
-</div>
+  <div class="row" style="margin-bottom:10px">
+    <button id="scanBtn">📷 Scan barcode</button>
+  </div>
 
-<div id="sitePanel"></div>
-<div id="sheet"></div>
-<div id="list"></div>
+  <div class="card" id="scan">
+    <video id="vid" playsinline muted></video>
+    <div class="row" style="margin-top:8px">
+      <span class="mu" id="scanMsg">Point the camera at the barcode on the SIM card. Don't scan the ICC number.</span>
+      <button class="alt" id="stopBtn" style="margin-left:auto">Stop</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <textarea id="numIn" placeholder="Type or paste one or many numbers, separated by space, comma or new line&#10;e.g. 09553603320 09384842524 09374648280"></textarea>
+    <div class="row" style="margin-top:8px">
+      <select id="carrier" style="flex:1"></select>
+      <input type="number" id="bxIn" class="slot" min="1" placeholder="Box">
+    </div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <label class="chk2"><input type="checkbox" id="fActive" checked> ✅ Active</label>
+      <label class="chk2"><input type="checkbox" id="fBarred"> 🚫 Barred</label>
+      <label class="chk2"><input type="checkbox" id="fNet"> 📵 Network not working</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="alt" id="micBtn" title="Voice input: tap, then say the digits one by one" style="padding:10px">🗣️</button>
+      <button id="addBtn" style="flex:1">Add</button>
+    </div>
+    <div class="mu" style="margin-top:8px">Valid: <b id="cnt">0</b> · Needs fixing: <b id="bad">0</b></div>
+  </div>
+
+  <div id="invList"></div>
+</section>
+
+<!-- LOOKUP -->
+<section class="pane" id="p-look">
+  <input type="search" id="q" placeholder="Number, box 30, sim TNT, or site (e.g. Grab)" style="width:100%;margin-bottom:10px">
+  <div id="lookRes"></div>
+</section>
+
+<!-- NUMBER LIST -->
+<section class="pane" id="p-num">
+  <div class="row" style="margin-bottom:10px">
+    <input type="search" id="nlq" placeholder="Filter: number, box 30, sim TNT, or site" style="flex:1;min-width:0">
+    <button class="alt" id="nlAll" style="white-space:nowrap">👁 Show all site boxes</button>
+  </div>
+  <div id="sheet"></div>
+</section>
+
+<!-- ANALYTICS -->
+<section class="pane" id="p-ana"></section>
+
+<!-- BRAND -->
+<section class="pane" id="p-brand"></section>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
-/* ---------- One-time notice (edit here) ---------- */
-const NOTICE={
-  id:"notice_barred_status_oct2026",
-  image:"",                         // paste your image URL here, or leave "" for no image
-  title:"📢 New update!",
-  text:"You can now mark a SIM as <b>Barred</b> or <b>Network not working</b> from the Edit SIM dialog. Badges show on each card and in the desktop table. For more details go to changelog in settings, UPDATED BY MASTER CHI 😗👌  - Oct 11 2026",
-  expires:"2026-10-15T23:59:59"     // notice stops showing after this date
+/* ---------- Editable settings ---------- */
+const APP_VERSION="0.0.1";
+
+const CREATOR={
+  name:"Norwell",
+  img:"https://i.ibb.co/rGhXDFPS/1791722795270-2.jpg"
 };
 
-/* ---------- Data ---------- */
-const CATS=[
+const NOTICE={
+  id:"notice_password_oct12",
+  image:"",                         // paste your image URL here, or leave "" for no image
+  title:"📢 New update!",
+  text:"Here's what's new and how to get the most out of the app:",
+  tips:[
+    "🔒 <b>Password:</b> go to ☰ Menu → Set password to lock the app. You'll enter it every time you open the app.",
+    "⚠️ <b>Forgot password:</b> if you forget it, all data in the app is deleted. Keep your password somewhere safe.",
+    "📷 <b>Scan:</b> point the camera at the barcode on the SIM card only. Don't scan the ICC number.",
+    "💾 <b>Backup:</b> your saved theme and SIM colors are included in the backup."
+  ],
+  expires:"2026-10-17T23:59:59"     // popup stops showing after this date
+};
+
+const TUT=[
+  {icon:"📥",t:"Inventory",d:"Add your numbers here. Paste or type one or many, pick the SIM from the dropdown, set the box and status, then tap Add. Tap a card to tick the sites already used."},
+  {icon:"📷",t:"Scan barcode",d:"Tap Scan barcode and point the camera at the barcode on the SIM card. Scan only that barcode, not the ICC number printed on the card. The number is added as soon as it is read."},
+  {icon:"🗣️",t:"Voice input",d:"Tap the 🗣️ button, allow the microphone when asked, then say the digits one at a time, for example \"zero nine five five three…\". Pause briefly between numbers. English digits (zero, one, two…) and Tagalog (sero, isa, dalawa, tatlo…) both work. The number appears in the box, so check it, then tap Add. Use a quiet place, and if it misses a digit, just type the fix."},
+  {icon:"🔍",t:"Lookup",d:"Search by number, box 30, sim TNT, or a site name like Grab. See which numbers still have that site open."},
+  {icon:"🔢",t:"Number List",d:"All your numbers in one place. Site boxes are hidden to keep it fast. Tap Show all site boxes, or open a single number's ▼ Show sites. Phones show cards, laptops and PCs show the full table that fits the screen."},
+  {icon:"📊",t:"Analytics",d:"Today's sales, earnings, fastest-selling sites, the last 7 days, and how many SIMs use each network."},
+  {icon:"🎨",t:"Brand",d:"Change the color style, the number color for each SIM network, and edit the site list for all SIMs or only the ones you check."},
+  {icon:"☰",t:"Menu",d:"Set a password to lock the app (you'll need it every visit). Save and Restore backups, change your name, dark mode, and the changelog are here too."}
+];
+
+/* ---------- Static data ---------- */
+const DEFAULT_CATS=[
 ["FOOD AND DELIVERY",[["FOOD PANDA",10],["JOYRIDE",10],["LALAMOVE",9],["ANGKAS",8],["MOVE IT",7],["GRAB",7],["PICKUP COFFEE",7],["ZUS COFFEE",7]]],
 ["SOCIAL MEDIA",[["TELEGRAM",15],["WECHAT",10],["TIKTOK",8],["WHATSAPP",7],["VIBER",7],["IG, FB, X",5],["DISCORD",5],["BUMBLE",5],["NIKI",5],["OKCUPID",5]]],
 ["SHOPPING APPS",[["LAZADA",10],["SHOPEE",10],["TEMU",7],["AMAZON",7],["SHEIN",7],["ZALORA",6],["CAROUSELL",6],["UNIQLO",6]]],
 ["E-WALLET",[["GCASH (+5 if 3c)",10],["MAYA",10],["PAYPAL",10],["COINSPH",10],["MARIBANK",7],["GOTYME",6],["GRABPAY",6],["CIMB",6]]],
 ["CASINO SITES",[["BINGO PLUS",10],["GAMEZONE",10],["PH BINGO",5],["PHILSLOT",5],["TARA 777",5],["NEWSTAR",6],["PLAYTIME",8],["OKBET",5],["ARENA PLUS",5],["CASINO PLUS",5],["OTHER SITES/CASINO",5]]]
 ];
-const SITE_COUNT=CATS.reduce((n,c)=>n+c[1].length,0);
-const SITE_NAMES=new Set(CATS.flatMap(c=>c[1].map(x=>x[0])));
+const CARRIERS=["TNT","GOMO","Smart","Globe","TM","DITO","Sun"];
 const NET={smart:["#16a34a","#fff"],tnt:["#eab308","#1a1d23"],dito:["#f97316","#fff"],tm:["#dc2626","#fff"],gomo:["#8b5cf6","#fff"],globe:["#2563eb","#fff"],sun:["#0891b2","#fff"]};
 const W={zero:0,oh:0,o:0,sero:0,one:1,isa:1,two:2,to:2,too:2,dalawa:2,three:3,tatlo:3,four:4,for:4,apat:4,five:5,lima:5,six:6,anim:6,seven:7,pito:7,eight:8,ate:8,walo:8,nine:9,siyam:9,syam:9};
+const PALETTES={
+ default:{name:"Classic blue",ac:"#2563eb",light:{bg:"#f4f5f7",card:"#ffffff",tx:"#1a1d23",mu:"#6b7280",ln:"#e2e5ea"},dark:{bg:"#0f1115",card:"#1a1d24",tx:"#eceef2",mu:"#9aa1ad",ln:"#2a2f39"}},
+ ocean:{name:"Ocean",ac:"#0e7490",light:{bg:"#eef6f9",card:"#ffffff",tx:"#17303a",mu:"#5b7682",ln:"#d5e6ec"},dark:{bg:"#0c1a1f",card:"#132830",tx:"#e3f1f5",mu:"#8fb0bb",ln:"#1f3b44"}},
+ mint:{name:"Mint",ac:"#059669",light:{bg:"#f0faf5",card:"#ffffff",tx:"#1b2e26",mu:"#5f7a6c",ln:"#d6ebe0"},dark:{bg:"#0d1914",card:"#14241d",tx:"#e2f3ea",mu:"#8fb3a0",ln:"#1f3a2e"}},
+ sand:{name:"Sand",ac:"#b45309",light:{bg:"#fbf7f0",card:"#ffffff",tx:"#2b2216",mu:"#7d6e5a",ln:"#eadfcc"},dark:{bg:"#17130d",card:"#221c13",tx:"#f3ebdd",mu:"#a89a84",ln:"#3a3020"}},
+ lavender:{name:"Lavender",ac:"#7c3aed",light:{bg:"#f7f4fd",card:"#ffffff",tx:"#241d33",mu:"#6e6585",ln:"#e4dcf3"},dark:{bg:"#110e18",card:"#1a1624",tx:"#ece7f6",mu:"#a49bb8",ln:"#2d2740"}},
+ rose:{name:"Rose",ac:"#be185d",light:{bg:"#fdf4f7",card:"#ffffff",tx:"#331a25",mu:"#8a6373",ln:"#f1d9e2"},dark:{bg:"#180d13",card:"#22141c",tx:"#f6e7ed",mu:"#b89aa7",ln:"#3b2330"}}
+};
+const SIMCOLORS={
+ ink:{name:"Default",light:"#1a1d23",dark:"#eceef2"},
+ blue:{name:"Blue",light:"#1d4ed8",dark:"#93c5fd"},
+ green:{name:"Green",light:"#047857",dark:"#6ee7b7"},
+ amber:{name:"Amber",light:"#b45309",dark:"#fcd34d"},
+ plum:{name:"Plum",light:"#7e22ce",dark:"#d8b4fe"},
+ rose:{name:"Rose",light:"#be123c",dark:"#fda4af"},
+ teal:{name:"Teal",light:"#0f766e",dark:"#5eead4"},
+ orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
+};
 const CHANGES=[
- {v:"Latest",items:[
-  "<b>Barred and network status:</b> in Edit SIM you can mark a number as Barred or Network not working. Badges show on cards and the desktop table.",
-  "<b>Search tips:</b> type <b>box 30</b> to find SIMs in box 30 and see how many are in it, or <b>sim TNT</b> to filter by SIM type. Plain text still searches by number or site.",
-  "<b>Box limit removed:</b> box numbers are no longer capped at 24. Any number 1 or higher saves correctly.",
-  "<b>Edit fix:</b> editing a SIM with a box number no longer shows the \"must be 1–24\" error."
+ {v:"Version 0.0.1 (latest)",items:[
+  "<b>Faster Number List:</b> site boxes are hidden by default. Tap 👁 Show all site boxes, or ▼ Show sites on one number.",
+  "<b>Lookup text:</b> updated wording for the search hint.",
+  "<b>Password fields:</b> Google's password suggestion no longer pops up and hides the keyboard. Passwords are still hidden as dots.",
+  "<b>Password lock:</b> set a password from the menu. The app asks for it every time you open it.",
+  "<b>Lock now:</b> lock the app during a session from the menu.",
+  "<b>Forgot password:</b> resets the app and deletes all saved data. Remember your password.",
+  "<b>Scan tip:</b> scan only the barcode on the SIM card, not the ICC number.",
+  "<b>Voice input guide:</b> the tutorial explains how voice works.",
+  "<b>Tutorial:</b> a short 8-step tour on first open. Replay it from the menu.",
+  "<b>Backup keeps your theme:</b> color style, light/dark mode, and SIM number colors are saved and restored."
  ]},
  {v:"Earlier",items:[
+  "<b>Clear bulk messages:</b> duplicates and bad numbers are listed one by one, with the reason.",
+  "<b>Continue or cancel:</b> add only the new numbers, or cancel and fix them.",
+  "<b>SIM number color:</b> set a color for each SIM network in Brand.",
+  "<b>Auto view:</b> cards on phones, full fit-to-screen table on laptops and PCs.",
+  "<b>Dropdowns only:</b> SIM network and site category are choose-only.",
+  "<b>Glass menu</b> with blur and animation. Save and Restore are in the menu.",
+  "<b>Inventory tab:</b> bulk add with spaces, commas or new lines. Active, Barred and Network status in one place.",
+  "<b>Lookup, Analytics and Brand tabs</b> with site list editing for all or selected SIMs.",
+  "<b>Barred and network status</b> in Edit SIM, with badges on cards and the table.",
+  "<b>Search tips:</b> <b>box 30</b> and <b>sim TNT</b>. Box limit removed.",
   "Voice input for numbers (English and Tagalog number words).",
-  "Desktop mode with a full sheet view of all SIMs and sites.",
   "Dark mode, name greeting, save and restore (.txt backup).",
   "Barcode scanner for SIM numbers."
  ]}
 ];
 
 /* ---------- State ---------- */
-const KEY="sim_otp_manager_v1", KEYN="sim_otp_name_v1", KEYD="sim_otp_desk_v1", KEYT="sim_otp_theme_v1", KEYNOTICE="sim_otp_notice_seen";
-let sims=[], openId=null, userName=null, desk=false;
+const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYNOTICE="sim_otp_notice_seen",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1";
+let sims=[],cats=JSON.parse(JSON.stringify(DEFAULT_CATS)),log=[],brand={palette:"default",mode:"system",simColors:{}};
+let openId=null,userName=null,tab="inv",isDark=false,brandCar=CARRIERS[0],modalLock=false,tutI=0,started=false;
+let nlShow=false;
+const nlOpen=new Set();
 const $=id=>document.getElementById(id);
 
+/* ---------- Storage ---------- */
+function normSim(s){
+  return {
+    id:s.id||Date.now()+Math.random(),
+    number:s.number,
+    slot:String(s.slot||""),
+    carrier:String(s.carrier||""),
+    used:Array.isArray(s.used)?s.used:[],
+    barred:!!s.barred,
+    netBad:!!s.netBad,
+    active:s.active!==false,
+    hide:Array.isArray(s.hide)?s.hide:[],
+    extra:Array.isArray(s.extra)?s.extra:[]
+  };
+}
+function load(){
+  try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
+  try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
+  try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
+  try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
+  if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+}
+function saveAll(){
+  if(log.length>5000)log=log.slice(-5000);
+  try{
+    localStorage.setItem(KEY,JSON.stringify(sims));
+    localStorage.setItem(KEYC,JSON.stringify(cats));
+    localStorage.setItem(KEYL,JSON.stringify(log));
+    localStorage.setItem(KEYB,JSON.stringify(brand));
+  }catch(e){}
+}
+function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
+function saveName(n){userName=n||null;try{localStorage.setItem(KEYN,n)}catch(e){}}
+
+/* ---------- Password ---------- */
+function pwInput(id,placeholder){
+  return `<input type="text" id="${id}" class="pwf" placeholder="${placeholder}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" style="width:100%;margin-bottom:8px">`;
+}
+function hashPw(p){
+  const s="sim_otp_salt|"+p;
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);
+}
+function storedPw(){try{return localStorage.getItem(KEYPW)}catch(e){return null}}
+function hasPw(){return !!storedPw()}
+function checkPw(p){return hasPw()&&hashPw(p)===storedPw()}
+function setPwStored(p){try{localStorage.setItem(KEYPW,hashPw(p))}catch(e){}refreshMenu()}
+function refreshMenu(){
+  const on=hasPw();
+  $("mPw").textContent=on?"🔑 Change or remove password":"🔒 Set password";
+  $("mLock").style.display=on?"":"none";
+}
+function wipeAll(){
+  [KEY,KEYC,KEYL,KEYB,KEYN,KEYNOTICE,KEYTUT,KEYPW].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+  location.reload();
+}
+function setupPw(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🔒 Set a password</h2>
+  <p class="mu">You'll enter this password every time you open the app. <b>If you forget it, all data in the app will be deleted.</b> Remember it or write it down somewhere safe.</p>
+  ${pwInput("pw1","New password (at least 4 characters)")}
+  ${pwInput("pw2","Type it again")}
+  <div class="errmsg" id="pwErr"></div>
+  <div class="row"><button id="pwSave">Save password</button><button class="alt" id="pwCancel">Cancel</button></div>`;
+  $("modal").style.display="flex";
+  $("pwCancel").onclick=closeModal;
+  $("pwSave").onclick=()=>{
+    const a=$("pw1").value,b=$("pw2").value;
+    if(a.length<4){$("pwErr").textContent="Use at least 4 characters.";return}
+    if(a!==b){$("pwErr").textContent="The two passwords don't match.";return}
+    setPwStored(a);closeModal();toast("Password set. You'll need it next time.");
+  };
+}
+function changePwDialog(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🔑 Change or remove password</h2>
+  <p class="mu">Enter your current password first.</p>
+  ${pwInput("pwCur","Current password")}
+  ${pwInput("pwNew","New password (leave blank to keep it)")}
+  ${pwInput("pwNew2","Type new password again")}
+  <div class="errmsg" id="pwErr"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="pwChange">Change password</button>
+    <button class="del" id="pwRemove">Remove password</button>
+    <button class="alt" id="pwCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("pwCancel").onclick=closeModal;
+  $("pwChange").onclick=()=>{
+    if(!checkPw($("pwCur").value)){$("pwErr").textContent="Current password is wrong.";return}
+    const a=$("pwNew").value,b=$("pwNew2").value;
+    if(!a){$("pwErr").textContent="Type a new password, or use Remove password.";return}
+    if(a.length<4){$("pwErr").textContent="Use at least 4 characters.";return}
+    if(a!==b){$("pwErr").textContent="The two new passwords don't match.";return}
+    setPwStored(a);closeModal();toast("Password changed");
+  };
+  $("pwRemove").onclick=()=>{
+    if(!checkPw($("pwCur").value)){$("pwErr").textContent="Enter the current password to remove it.";return}
+    try{localStorage.removeItem(KEYPW)}catch(e){}
+    refreshMenu();closeModal();toast("Password removed");
+  };
+}
+function openPwMenu(){hasPw()?changePwDialog():setupPw()}
+function unlockOK(){
+  $("lock").style.display="none";$("lockPw").value="";$("lockMsg").textContent="";
+  if(!started){started=true;setTab("inv");onboard()}
+  else render();
+}
+function lockNow(){
+  stopScan();closeModal();
+  $("lock").style.display="flex";$("lockPw").value="";
+  setTimeout(()=>$("lockPw").focus(),50);
+}
+function tryUnlock(){
+  const p=$("lockPw").value;
+  if(checkPw(p))unlockOK();
+  else{$("lockMsg").textContent="Wrong password. Try again.";$("lockPw").select()}
+}
+function forgotPw(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>⚠️ Forgot password?</h2>
+  <p>If you forgot your password, <b>all SIMs, sites, analytics, and settings in this app will be permanently deleted.</b></p>
+  <p>This can't be undone. Your backup files (.txt) on your device are not affected.</p>
+  <div class="row" style="flex-wrap:wrap">
+    <button class="del" id="fDel" style="border:1px solid var(--bad);border-radius:8px">Delete everything</button>
+    <button class="alt" id="fCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("fCancel").onclick=closeModal;
+  $("fDel").onclick=wipeAll;
+}
+
 /* ---------- Helpers ---------- */
-function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",2200)}
-function load(){try{const r=localStorage.getItem(KEY);if(r)sims=JSON.parse(r)||[]}catch(e){sims=[]}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(sims))}catch(e){}}
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",2600)}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 function normNum(t){
   const d=String(t).replace(/\D/g,"");
@@ -180,13 +472,56 @@ function normNum(t){
   if(/^639\d{9}$/.test(d))return "0"+d.slice(2);
   return null;
 }
+function badReason(tk){
+  const d=String(tk).replace(/\D/g,"");
+  if(!d)return "is not a number";
+  if(d.length<11&&/^09/.test(d))return `is missing ${11-d.length} digit${11-d.length>1?"s":""} (has ${d.length}, needs 11)`;
+  if(d.length<10)return `is too short (has ${d.length} digits, needs 11)`;
+  if(d.length>11)return `has ${d.length} digits, the maximum is 11`;
+  return "is not a valid Philippine mobile number (it should start with 09)";
+}
 function cleanNum(v){let d=v.replace(/\D/g,"");if(/^639/.test(d)&&d.length>=12)d="0"+d.slice(2);if(d[0]==="9")d="0"+d;return d.slice(0,11)}
 function fmt(n){return String(n).replace(/^(\d{4})(\d{3})(\d{4})$/,"$1-$2-$3")}
+function dayKey(d){const p=x=>String(x).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+function sortedSims(){return sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0))}
+function viewMode(){return innerWidth>=900?"comp":"mob"}
+function carrierOpts(sel){
+  const list=CARRIERS.slice();if(sel&&!list.includes(sel))list.push(sel);
+  return `<option value="">— Choose SIM —</option>`+list.map(c=>`<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
+}
+function copyText(t){
+  const ok=()=>toast("Copied: "+fmt(t));
+  const fb=()=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove();ok()};
+  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
+}
+function simColorOf(s){const k=brand.simColors[s.carrier];return (SIMCOLORS[k]||SIMCOLORS.ink)[isDark?"dark":"light"]}
+function closeModal(){modalLock=false;$("modal").style.display="none"}
+
+/* ---------- Sites ---------- */
+function sitesFor(s){
+  const out=[];
+  cats.forEach(c=>c[1].forEach(x=>{if(!s.hide.includes(x[0]))out.push({cat:c[0],name:x[0],price:x[1]})}));
+  s.extra.forEach(e=>{if(!out.some(o=>o.name===e.name))out.push({cat:e.cat||"OTHER",name:e.name,price:e.price})});
+  return out;
+}
+function allColumns(){
+  const cols=[];
+  const add=(cat,name,price)=>{if(!cols.some(c=>c.name===name))cols.push({cat,name,price})};
+  cats.forEach(c=>c[1].forEach(x=>add(c[0],x[0],x[1])));
+  sims.forEach(s=>s.extra.forEach(e=>add(e.cat||"OTHER",e.name,e.price)));
+  return cols;
+}
+function priceOf(s,name){const f=sitesFor(s).find(x=>x.name===name);return f?f.price:0}
+function usedCount(s){const names=sitesFor(s).map(x=>x.name);return s.used.filter(u=>names.includes(u)).length}
+function usableSim(s){return s.active&&!s.barred&&!s.netBad}
+function earnTotal(){return sims.reduce((n,s)=>n+sitesFor(s).filter(x=>s.used.includes(x.name)).reduce((m,x)=>m+x.price,0),0)}
+
+/* ---------- Badges ---------- */
 function slotBox(s){
   const k=NET[(s.carrier||"").trim().toLowerCase()];
   return s.slot
-    ? `<span class="slotb"${k?` style="border-color:${k[0]}"`:""}>${esc(s.slot)}</span>`
-    : `<span class="slotb q" data-act="edit" title="No box yet — tap to set">?</span>`;
+    ? `<span class="slotb"${k?` style="border-color:${k[0]}"`:""} data-act="edit" title="Tap to edit">${esc(s.slot)}</span>`
+    : `<span class="slotb q" data-act="edit" title="No box yet, tap to set">?</span>`;
 }
 function netBadge(c){
   c=(c||"").trim();if(!c)return"";
@@ -195,18 +530,19 @@ function netBadge(c){
 }
 function statusBadges(s){
   let h="";
+  if(!s.active)h+=`<span class="nb" style="background:#6b7280;color:#fff">⚪ Inactive</span>`;
   if(s.barred)h+=`<span class="nb" style="background:#dc2626;color:#fff">🚫 Barred</span>`;
   if(s.netBad)h+=`<span class="nb" style="background:#f97316;color:#fff">📵 Network down</span>`;
   return h;
 }
-function copyText(t){
-  const ok=()=>toast("Copied: "+t);
-  const fb=()=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove();ok()};
-  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
+function statusIcons(s){return (!s.active?"⚪":"")+(s.barred?"🚫":"")+(s.netBad?"📵":"")}
+function chipHTML(s){
+  return `<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+esc(s.slot)+"</b> · ":""}<span style="color:${simColorOf(s)}">${fmt(s.number)}</span>`
+    +`${s.carrier?" · "+esc(s.carrier):""}${statusIcons(s)?" "+statusIcons(s):""} `
+    +`<span data-copy="${s.number}" title="Copy">📋</span></span>`;
 }
-function usedCount(s){return s.used.filter(u=>SITE_NAMES.has(u)).length}
 
-/* ---------- Search parsing ---------- */
+/* ---------- Search ---------- */
 function parseQuery(raw){
   const q=String(raw||"").trim().toLowerCase();
   let m=q.match(/^box\s*#?\s*(\d+)$/);
@@ -220,403 +556,721 @@ function matchSim(s,p){
   if(p.mode==="box")return String(s.slot)===p.val;
   if(p.mode==="sim")return (s.carrier||"").toLowerCase().includes(p.val);
   const qd=p.val.replace(/[\s-]/g,"");
-  return (qd&&s.number.includes(qd))||(s.carrier||"").toLowerCase().includes(p.val)||String(s.slot)===p.val;
+  return (qd&&String(s.number).includes(qd))||(s.carrier||"").toLowerCase().includes(p.val)||String(s.slot)===p.val;
 }
 
-/* ---------- Add / edit ---------- */
-function addSim(num,slot,carrier){
-  const n=normNum(num);
-  if(!n){toast("Not a valid phone number (10 or 11 digits)");return false}
-  if(sims.some(s=>s.number===n)){toast("Already in list: "+fmt(n));return false}
-  const bx=String(slot||"").trim();
-  if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank");return false}
-  sims.push({id:Date.now()+Math.random(),number:n,slot:bx,carrier:(carrier||"").trim(),used:[],barred:false,netBad:false});
-  save();render();toast("Added "+fmt(n));return true;
+/* ---------- Add numbers (bulk, clear messages) ---------- */
+function makeSim(num,bx,carrier,fl){
+  return normSim({id:Date.now()+Math.random()+Math.random(),number:num,slot:bx,carrier:(carrier||"").trim(),used:[],
+    barred:!!fl.barred,netBad:!!fl.netBad,active:fl.active!==false});
 }
+function showIssues(issues,valid,onContinue){
+  const dups=issues.filter(i=>i.type==="dup"),bad=issues.filter(i=>i.type==="bad");
+  const total=dups.length+bad.length;
+  let h=`<h2>⚠️ Some numbers were not added</h2>`;
+  if(dups.length){
+    h+=`<p><b>Already in the list:</b></p><ul>${dups.map(i=>`<li>${esc(fmt(i.num))} is already in the list</li>`).join("")}</ul>`;
+  }
+  if(bad.length){
+    h+=`<p><b>Not valid:</b></p><ul>${bad.map(i=>`<li>${esc(i.tk)} ${esc(i.msg)}</li>`).join("")}</ul>`;
+  }
+  if(valid.length){
+    h+=`<p>Would you continue without ${total===1?"this number":"these numbers"}? <b>${valid.length}</b> new number${valid.length>1?"s":""} will be added. Numbers already in the list will not be changed.</p>`
+      +`<div class="row"><button id="iGo">Continue</button><button class="alt" id="iNo">Cancel</button></div>`;
+  }else{
+    h+=`<p>Nothing new to add. Fix the numbers above and try again.</p><div class="row"><button id="iNo">OK</button></div>`;
+  }
+  $("mbox").innerHTML=h;
+  $("modal").style.display="flex";
+  $("iNo").onclick=closeModal;
+  if(valid.length)$("iGo").onclick=()=>{closeModal();onContinue()};
+}
+function addBulk(){
+  const text=$("numIn").value;
+  const tokens=text.split(/[\s,;]+/).filter(Boolean);
+  if(!tokens.length){toast("Type or paste a number first");return}
+  const bx=$("bxIn").value.trim();
+  if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank");return}
+  const fl=flags(),carrier=$("carrier").value;
+  const seen=new Set(sims.map(s=>s.number));
+  const valid=[],issues=[],badTokens=[];
+  tokens.forEach(tk=>{
+    const n=normNum(tk);
+    if(!n){issues.push({type:"bad",tk,msg:badReason(tk)});badTokens.push(tk);return}
+    if(seen.has(n)){issues.push({type:"dup",num:n});return}
+    seen.add(n);valid.push(n);
+  });
+  const commit=()=>{
+    valid.forEach(n=>sims.push(makeSim(n,bx,carrier,fl)));
+    saveAll();render();
+    toast(`Added ${valid.length} SIM${valid.length===1?"":"s"}`);
+    $("numIn").value=badTokens.join(" ");
+    countInput();
+  };
+  if(!issues.length){commit();return}
+  if(!valid.length){showIssues(issues,valid,()=>{});return}
+  showIssues(issues,valid,commit);
+}
+function flags(){return {active:$("fActive").checked,barred:$("fBarred").checked,netBad:$("fNet").checked}}
+function countInput(){
+  const toks=$("numIn").value.split(/[\s,;]+/).filter(Boolean);
+  const ok=toks.filter(t=>normNum(t)).length;
+  $("cnt").textContent=ok;$("bad").textContent=toks.length-ok;
+}
+
+/* ---------- Edit / delete ---------- */
 function editSim(id){
   const s=sims.find(x=>x.id===id);if(!s)return;
   $("mbox").innerHTML=`<h2>✏️ Edit SIM</h2>
   <div class="mu">Phone number (11 digits)</div><input type="text" id="eNum" inputmode="numeric" maxlength="14" style="width:100%;margin-bottom:10px">
-  <div class="mu">Network / SIM (optional)</div><input type="text" id="eNet" list="carriers" placeholder="Smart, Globe, DITO…" style="width:100%;margin-bottom:10px">
+  <div class="mu">Network / SIM</div><select id="eNet" style="width:100%;margin-bottom:10px">${carrierOpts(s.carrier)}</select>
   <div class="mu">Box #</div><input type="number" id="eSlot" min="1" style="width:100%;margin-bottom:12px">
   <div class="mu" style="margin-bottom:4px">Status</div>
+  <label class="site"><input type="checkbox" id="eActive"><span>✅ Active</span></label>
   <label class="site"><input type="checkbox" id="eBarred"><span>🚫 Barred</span></label>
   <label class="site"><input type="checkbox" id="eNetBad"><span>📵 Network not working</span></label>
   <div class="row" style="margin-top:12px"><button id="eOk">Save</button><button class="alt" id="eCancel">Cancel</button></div>`;
   $("eNum").value=fmt(s.number);
-  $("eNet").value=s.carrier||"";
   $("eSlot").value=s.slot||"";
-  $("eBarred").checked=!!s.barred;
-  $("eNetBad").checked=!!s.netBad;
+  $("eActive").checked=s.active;
+  $("eBarred").checked=s.barred;
+  $("eNetBad").checked=s.netBad;
   $("modal").style.display="flex";
   $("eNum").addEventListener("input",()=>{$("eNum").value=fmt(cleanNum($("eNum").value))});
-  $("eCancel").onclick=()=>$("modal").style.display="none";
+  $("eCancel").onclick=closeModal;
   $("eOk").onclick=()=>{
     const n=normNum($("eNum").value);
-    if(!n){toast("Not a valid phone number (11 digits)");return}
+    if(!n){toast("Not a valid number: "+badReason($("eNum").value));return}
     const bx=$("eSlot").value.trim();
-    if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank for ?");return}
-    if(sims.some(x=>x!==s&&x.number===n)){toast("Number already in list: "+fmt(n));return}
-    s.number=n;
-    s.carrier=$("eNet").value.trim();
-    s.slot=bx;
-    s.barred=$("eBarred").checked;
-    s.netBad=$("eNetBad").checked;
-    save();render();$("modal").style.display="none";toast("Saved changes");
+    if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank");return}
+    if(sims.some(x=>x!==s&&x.number===n)){toast(fmt(n)+" is already in the list");return}
+    s.number=n;s.carrier=$("eNet").value;s.slot=bx;
+    s.active=$("eActive").checked;s.barred=$("eBarred").checked;s.netBad=$("eNetBad").checked;
+    saveAll();render();closeModal();toast("Saved changes");
   };
 }
 function deleteSim(s){
-  if(confirm("Delete "+fmt(s.number)+"?")){sims=sims.filter(x=>x!==s);save();render()}
+  if(confirm("Delete "+fmt(s.number)+"?")){sims=sims.filter(x=>x!==s);saveAll();render()}
 }
 function toggleSite(s,site,on){
-  s.used=on?[...new Set([...s.used,site])]:s.used.filter(u=>u!==site);
-  save();
+  const has=s.used.includes(site);
+  if(on&&!has){
+    s.used.push(site);
+    log.push({d:dayKey(new Date()),t:Date.now(),num:s.number,site,price:priceOf(s,site)});
+  }else if(!on&&has){
+    s.used=s.used.filter(u=>u!==site);
+    for(let i=log.length-1;i>=0;i--){if(log[i].num===s.number&&log[i].site===site){log.splice(i,1);break}}
+  }
+  saveAll();
 }
 
 /* ---------- Greeting ---------- */
 function greet(){
   const g=$("greet"),h=new Date().getHours(),tm=h<12?"morning":h<18?"afternoon":"evening";
   let av=0,nums=0;
-  sims.forEach(s=>{const u=usedCount(s);if(u<SITE_COUNT){nums++;av+=SITE_COUNT-u}});
+  sims.filter(usableSim).forEach(s=>{const left=sitesFor(s).length-usedCount(s);if(left>0){nums++;av+=left}});
   g.style.display="block";
   g.innerHTML=`Hello, good ${tm}${userName?", <b>"+esc(userName)+"</b>":""}! `+
-    (sims.length?`You have <b>${av}</b> sites available across <b>${nums}</b> numbers for OTP today.`:"Add your first SIM to start.");
+    (sims.length?`You have <b>${av}</b> sites available across <b>${nums}</b> usable numbers for OTP today.`:"Add your first SIM to start.");
 }
 
-/* ---------- Name ---------- */
-function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
-function saveName(n){userName=n||null;try{localStorage.setItem(KEYN,n)}catch(e){}}
+/* ---------- Inventory cards ---------- */
+function cardHTML(s){
+  const eff=sitesFor(s),used=usedCount(s);
+  let h=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">`
+    +`<div class="head" data-act="toggle"><div>`
+    +`<div class="num" style="color:${simColorOf(s)}">${fmt(s.number)} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div>`
+    +`<div class="mu">${netBadge(s.carrier)}${statusBadges(s)}${used}/${eff.length} sites used</div></div>`
+    +`<div class="row"><span class="mu">Box</span>${slotBox(s)}`
+    +`<button class="alt" data-act="edit" style="padding:6px 9px" title="Edit">✏️</button>`
+    +`<button class="del" data-act="del">🗑</button></div></div>`;
+  h+=`<div class="sites">`;
+  if(openId===s.id){
+    const groups=[];
+    eff.forEach(x=>{let g=groups.find(g=>g.cat===x.cat);if(!g){g={cat:x.cat,items:[]};groups.push(g)}g.items.push(x)});
+    groups.forEach(g=>{
+      h+=`<div class="cat">${esc(g.cat)}</div>`;
+      g.items.forEach(x=>{
+        const on=s.used.includes(x.name);
+        h+=`<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x.name)}" ${on?"checked":""}>`
+          +`<span>${esc(x.name)}</span><span class="p">₱${x.price}</span></label>`;
+      });
+    });
+  }
+  return h+`</div></div>`;
+}
+function renderInv(){
+  greet();
+  const arr=sortedSims();
+  $("invList").innerHTML=arr.length?arr.map(cardHTML).join("")
+    :`<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Type or scan a number above.</div>`;
+}
+
+/* ---------- Lookup ---------- */
+function renderLookup(){
+  const raw=$("q").value,p=parseQuery(raw);
+  let h="";
+  if(!raw.trim()){
+    h=`<div class="mu" style="text-align:center;padding:30px">Try a Number, Box 30, Sim TNT or a Site Name.</div>`;
+  }else if(p.mode==="box"){
+    const inBox=sims.filter(s=>s.slot===p.val);
+    h+=`<div class="card"><div class="head" style="cursor:default"><b>📦 Box ${esc(p.val)}</b><span class="pill">${inBox.length} SIM${inBox.length===1?"":"s"}</span></div><div style="margin-top:8px">`
+      +(inBox.length?inBox.map(chipHTML).join(""):`<span class="mu">Empty box, no SIM yet</span>`)+`</div></div>`;
+  }else if(p.mode==="sim"){
+    const hits=sims.filter(s=>matchSim(s,p));
+    h+=`<div class="card"><div class="head" style="cursor:default"><b>📶 ${esc(p.val.toUpperCase())}</b><span class="pill">${hits.length}</span></div><div style="margin-top:8px">`
+      +(hits.length?hits.map(chipHTML).join(""):`<span class="mu">No SIM with that network</span>`)+`</div></div>`;
+  }else{
+    if(p.val.length>=2){
+      allColumns().filter(c=>c.name.toLowerCase().includes(p.val)).forEach(c=>{
+        const av=sims.filter(s=>usableSim(s)&&!s.used.includes(c.name)&&sitesFor(s).some(x=>x.name===c.name));
+        h+=`<div class="card"><div class="head" style="cursor:default"><b>${esc(c.name)}</b><span class="pill">₱${c.price} · ${av.length} available</span></div><div style="margin-top:8px">`
+          +(av.length?av.map(chipHTML).join(""):`<span class="mu">No available number</span>`)+`</div></div>`;
+      });
+    }
+    if(/\d/.test(p.val)){
+      const hits=sims.filter(s=>matchSim(s,p));
+      h+=`<div class="card"><b>🔢 Matching numbers</b> <span class="pill">${hits.length}</span><div style="margin-top:8px">`
+        +(hits.length?hits.map(chipHTML).join(""):`<span class="mu">No match</span>`)+`</div></div>`;
+    }
+  }
+  $("lookRes").innerHTML=h;
+}
+
+/* ---------- Number List ---------- */
+function mobCard(s){
+  const eff=sitesFor(s),used=usedCount(s);
+  const open=nlShow||nlOpen.has(s.id);
+  let sites="";
+  if(open){
+    const groups=[];
+    eff.forEach(x=>{let g=groups.find(g=>g.cat===x.cat);if(!g){g={cat:x.cat,items:[]};groups.push(g)}g.items.push(x)});
+    sites=`<div class="sg" style="margin-top:8px">`
+      +groups.map(g=>`<div class="cat">${esc(g.cat)}</div>`+g.items.map(x=>{
+          const on=s.used.includes(x.name);
+          return `<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x.name)}" ${on?"checked":""}>`
+            +`<span>${esc(x.name)}</span><span class="p">₱${x.price}</span></label>`;
+        }).join("")).join("")
+      +`</div>`;
+  }
+  const btn=nlShow?"":`<button class="alt" data-act="nlCard" style="margin-top:8px;padding:6px 10px;font-size:13px">${open?"▲ Hide sites":"▼ Show sites ("+eff.length+")"}</button>`;
+  return `<div class="card" data-id="${s.id}">`
+    +`<div class="head" style="cursor:default"><div>`
+    +`<div class="num" style="color:${simColorOf(s)}"><span data-copy="${s.number}" style="cursor:pointer">${fmt(s.number)}</span></div>`
+    +`<div class="mu">${netBadge(s.carrier)}${statusBadges(s)}${used}/${eff.length} sites used</div></div>`
+    +`<div class="row"><span class="mu">Box</span>${slotBox(s)}</div></div>`
+    +btn+sites
+    +`</div>`;
+}
+function compTable(arr,cols,groups){
+  const head1=`<tr><th rowspan="2" class="c-box">Box</th><th rowspan="2" class="c-num">Number</th><th rowspan="2" class="c-sim">SIM</th>`
+    +groups.map(g=>`<th colspan="${g.n}" class="grp">${esc(g.cat)}</th>`).join("")
+    +`<th rowspan="2" class="c-used">Used</th></tr>`;
+  const head2=cols.length?`<tr>`+cols.map(c=>`<th class="sv"><span class="vtxt">${esc(c.name)} ₱${c.price}</span></th>`).join("")+`</tr>`:"";
+  const rows=arr.map(s=>{
+    const names=sitesFor(s).map(x=>x.name);
+    return `<tr data-id="${s.id}">`
+      +`<td>${slotBox(s)}</td>`
+      +`<td><b data-copy="${s.number}" style="color:${simColorOf(s)}">${fmt(s.number)}</b></td>`
+      +`<td class="sm">${esc(s.carrier||"—")} ${statusIcons(s)}</td>`
+      +cols.map(c=>{
+        if(!names.includes(c.name))return `<td class="na">—</td>`;
+        const on=s.used.includes(c.name);
+        return `<td><label class="cc"><input type="checkbox" data-act="chk" data-site="${esc(c.name)}" ${on?"checked":""}></label></td>`;
+      }).join("")
+      +`<td>${usedCount(s)}/${names.length}</td></tr>`;
+  }).join("");
+  return `<table><colgroup><col class="c-box"><col class="c-num"><col class="c-sim">${cols.map(()=>"<col>").join("")}<col class="c-used"></colgroup>`
+    +`<thead>${head1}${head2}</thead><tbody>${rows}</tbody></table>`;
+}
+function renderSheet(){
+  const view=viewMode();
+  const p=parseQuery($("nlq").value);
+  const arr=sortedSims().filter(s=>matchSim(s,p));
+  $("nlAll").textContent=nlShow?"🙈 Hide all site boxes":"👁 Show all site boxes";
+  $("nlAll").className=nlShow?"":"alt";
+  const sh=$("sheet"),sy=window.scrollY;
+  if(!arr.length){
+    sh.className="";
+    sh.innerHTML=`<div class="mu" style="text-align:center;padding:24px">No SIMs to show.</div>`;
+    return;
+  }
+  if(view==="mob"){
+    sh.className="";
+    sh.innerHTML=arr.map(mobCard).join("");
+  }else{
+    const cols=nlShow?allColumns():[];
+    const groups=[];
+    cols.forEach(c=>{const g=groups[groups.length-1];if(g&&g.cat===c.cat)g.n++;else groups.push({cat:c.cat,n:1})});
+    sh.className="nl-comp";
+    sh.innerHTML=compTable(arr,cols,groups);
+  }
+  window.scrollTo(0,sy);
+}
+
+/* ---------- Analytics ---------- */
+function stat(label,val){return `<div class="stat"><span class="mu">${label}</span><b>${val}</b></div>`}
+function bars(items,max){
+  if(!items.length)return `<div class="mu">No data yet</div>`;
+  max=max||Math.max(1,...items.map(i=>i[1]));
+  return items.map(([k,v])=>`<div class="brow"><span>${esc(k)}</span><div class="track"><div style="width:${Math.round(v/max*100)}%"></div></div><b>${v}</b></div>`).join("");
+}
+function renderAnalytics(){
+  const today=dayKey(new Date());
+  const tl=log.filter(l=>l.d===today);
+  const usable=sims.filter(usableSim);
+  const doneTotal=sims.reduce((n,s)=>n+usedCount(s),0);
+  const earnToday=tl.reduce((n,l)=>n+(+l.price||0),0);
+  const avail=usable.reduce((n,s)=>n+sitesFor(s).length-usedCount(s),0);
+  const cnt={};sims.forEach(s=>s.used.forEach(u=>cnt[u]=(cnt[u]||0)+1));
+  const topAll=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tcnt={};tl.forEach(l=>tcnt[l.site]=(tcnt[l.site]||0)+1);
+  const topToday=Object.entries(tcnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push([d.toLocaleDateString(undefined,{weekday:"short"}),log.filter(l=>l.d===dayKey(d)).length])}
+  const car={};sims.forEach(s=>{const c=(s.carrier||"").trim()||"Unknown";car[c]=(car[c]||0)+1});
+  const boxes={};sims.forEach(s=>{if(s.slot)boxes[s.slot]=(boxes[s.slot]||0)+1});
+  const topBox=Object.entries(boxes).sort((a,b)=>b[1]-a[1])[0];
+  $("p-ana").innerHTML=`<div class="grid">
+    ${stat("Done today",tl.length)}${stat("Earned today","₱"+earnToday)}${stat("Total done",doneTotal)}${stat("Total earned","₱"+earnTotal())}
+    ${stat("SIMs",sims.length)}${stat("Active",sims.filter(s=>s.active).length)}${stat("Barred",sims.filter(s=>s.barred).length)}${stat("Network down",sims.filter(s=>s.netBad).length)}
+    ${stat("Usable now",usable.length)}${stat("Open slots",avail)}${stat("Boxes used",Object.keys(boxes).length)}${stat("Busiest box",topBox?"Box "+esc(topBox[0])+" ("+topBox[1]+")":"—")}
+  </div>
+  <div class="card"><b>⚡ Fastest selling today</b><div style="margin-top:8px">${bars(topToday)}</div></div>
+  <div class="card"><b>🏆 Fastest selling overall</b><div style="margin-top:8px">${bars(topAll)}</div></div>
+  <div class="card"><b>📅 Last 7 days</b><div style="margin-top:8px">${bars(days)}</div></div>
+  <div class="card"><b>📶 SIM networks</b><div style="margin-top:8px">${bars(Object.entries(car).sort((a,b)=>b[1]-a[1]))}</div></div>`;
+}
+
+/* ---------- Brand ---------- */
+function renderBrand(){
+  const pals=Object.entries(PALETTES).map(([k,p])=>`<button class="pal ${brand.palette===k?"on":""}" data-set="palette" data-v="${k}"><span class="sw" style="background:${p.ac}"></span>${p.name}</button>`).join("");
+  const modes=[["system","🖥️ System"],["light","☀️ Light"],["dark","🌙 Dark"]].map(([k,l])=>`<button class="pal ${brand.mode===k?"on":""}" data-set="mode" data-v="${k}">${l}</button>`).join("");
+  const carOpts=CARRIERS.map(c=>`<option value="${c}"${c===brandCar?" selected":""}>${c}</option>`).join("");
+  const curSim=brand.simColors[brandCar]||"ink";
+  const simChips=Object.entries(SIMCOLORS).map(([k,c])=>`<button class="pal ${curSim===k?"on":""}" data-simk="${k}"><span class="sw" style="background:${c.light}"></span>${c.name}</button>`).join("");
+  const simList=CARRIERS.map(c=>{const k=brand.simColors[c]||"ink";return `<span class="chip"><span class="sw" style="background:${SIMCOLORS[k].light};vertical-align:middle"></span> ${c}: ${SIMCOLORS[k].name}</span>`}).join("");
+  const cols=allColumns();
+  const catOpts=cats.map(c=>`<option value="${esc(c[0])}">${esc(c[0])}</option>`).join("")+`<option value="__new">➕ New category</option>`;
+  const remOpts=cols.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
+  const selList=sortedSims().map(s=>`<label class="site"><input type="checkbox" data-bsel="${s.id}"><span style="color:${simColorOf(s)}">${fmt(s.number)}</span><span class="mu">${s.slot?"Box "+esc(s.slot):"no box"}</span></label>`).join("")||`<div class="mu">No SIMs yet</div>`;
+  const catalog=cats.map(c=>`<div class="cat">${esc(c[0])}</div><div>${c[1].map(x=>`<span class="chip">${esc(x[0])} <b>₱${x[1]}</b></span>`).join("")}</div>`).join("");
+  $("p-brand").innerHTML=`
+  <div class="card"><b>🎨 Theme</b>
+    <div class="mu" style="margin:8px 0 6px">Color style (soft, easy on the eyes)</div><div class="seg">${pals}</div>
+    <div class="mu" style="margin:12px 0 6px">Mode</div><div class="seg">${modes}</div>
+  </div>
+  <div class="card"><b>🔢 SIM number color</b>
+    <div class="mu" style="margin:8px 0 4px">Choose SIM network</div>
+    <select id="scCar" style="width:100%">${carOpts}</select>
+    <div class="mu" style="margin:12px 0 6px">Choose color for ${esc(brandCar)}</div>
+    <div class="seg">${simChips}</div>
+    <div class="mu" style="margin:12px 0 6px">Current colors</div>
+    <div>${simList}</div>
+  </div>
+  <div class="card"><b>🧩 Site list editor</b>
+    <div class="mu" style="margin:8px 0 4px">What do you want to do?</div>
+    <select id="bAct" style="width:100%"><option value="add">➕ Add a site</option><option value="rem">🗑 Remove a site</option></select>
+    <div id="bAddF">
+      <input id="bName" type="text" placeholder="Site name, e.g. TikTok Shop" style="width:100%;margin-top:8px">
+      <div class="row" style="margin-top:8px">
+        <select id="bCat" style="flex:1">${catOpts}</select>
+        <input id="bPrice" type="number" min="0" placeholder="₱" style="width:90px">
+      </div>
+      <input id="bNewCat" type="text" placeholder="New category name" style="width:100%;margin-top:8px;display:none">
+    </div>
+    <div id="bRemF" style="display:none"><select id="bRemSel" style="width:100%;margin-top:8px">${remOpts}</select></div>
+    <div class="mu" style="margin:12px 0 4px">Apply to</div>
+    <label class="site"><input type="radio" name="bScope" value="all" checked><span>All SIMs (changes the main list)</span></label>
+    <label class="site"><input type="radio" name="bScope" value="sel"><span>Only the SIMs I check</span></label>
+    <div id="bSelF" style="display:none;max-height:240px;overflow:auto;border:1px solid var(--ln);border-radius:8px;padding:6px;margin-top:6px">
+      <label class="site"><input type="checkbox" id="bSelAll"><span><b>Select all</b></span></label>${selList}
+    </div>
+    <div class="row" style="margin-top:12px"><button data-act="applySite">Apply</button></div>
+  </div>
+  <div class="card"><b>📋 Current list</b><div style="margin-top:8px">${catalog}</div></div>`;
+}
+
+/* ---------- Render / tabs ---------- */
+function render(){
+  $("stats").textContent=sims.length+" SIMs · ₱"+earnTotal()+" done";
+  document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");
+  const R={inv:renderInv,look:renderLookup,num:renderSheet,ana:renderAnalytics};
+  if(R[tab])R[tab]();
+}
+function setTab(t){
+  tab=t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id==="p-"+t));
+  if(t==="brand")renderBrand();
+  else render();
+  window.scrollTo(0,0);
+}
+
+/* ---------- Site list editor ---------- */
+function applySiteChange(){
+  const act=$("bAct").value;
+  const scope=document.querySelector('input[name="bScope"]:checked').value;
+  const name=$("bName").value.trim();
+  const catSel=$("bCat").value;
+  const cat=(catSel==="__new"?$("bNewCat").value.trim():catSel).toUpperCase()||"OTHER";
+  const price=Math.max(0,+$("bPrice").value||0);
+  const remName=$("bRemSel").value;
+  const target=act==="add"?name:remName;
+  if(act==="add"&&!name){toast("Type a site name first");return}
+  if(act==="add"&&catSel==="__new"&&!$("bNewCat").value.trim()){toast("Type the new category name");return}
+  if(!target){toast("Nothing to remove");return}
+  let targets=[];
+  if(scope==="sel"){
+    const ids=[...document.querySelectorAll("[data-bsel]:checked")].map(x=>String(x.dataset.bsel));
+    targets=sims.filter(s=>ids.includes(String(s.id)));
+    if(!targets.length){toast("Check at least one SIM");return}
+  }
+  if(act==="add"){
+    if(scope==="all"){
+      cats.forEach(c=>c[1]=c[1].filter(x=>x[0]!==name));
+      let c=cats.find(c=>c[0]===cat);if(!c){c=[cat,[]];cats.push(c)}
+      c[1].push([name,price]);
+      sims.forEach(s=>{s.extra=s.extra.filter(e=>e.name!==name);s.hide=s.hide.filter(n=>n!==name)});
+    }else{
+      targets.forEach(s=>{
+        s.hide=s.hide.filter(n=>n!==name);
+        if(!cats.some(c=>c[1].some(x=>x[0]===name))){
+          s.extra=s.extra.filter(e=>e.name!==name);
+          s.extra.push({name,price,cat});
+        }
+      });
+    }
+    toast(`Added ${name}`+(scope==="sel"?` to ${targets.length} SIM(s)`:" to all SIMs"));
+  }else{
+    if(scope==="all"){
+      cats.forEach(c=>c[1]=c[1].filter(x=>x[0]!==remName));
+      cats=cats.filter(c=>c[1].length);
+      sims.forEach(s=>s.extra=s.extra.filter(e=>e.name!==remName));
+    }else{
+      targets.forEach(s=>{
+        s.extra=s.extra.filter(e=>e.name!==remName);
+        if(cats.some(c=>c[1].some(x=>x[0]===remName))&&!s.hide.includes(remName))s.hide.push(remName);
+      });
+    }
+    toast(`Removed ${remName}`+(scope==="sel"?` from ${targets.length} SIM(s)`:" from all SIMs"));
+  }
+  saveAll();render();renderBrand();
+}
+
+/* ---------- Startup flow: tutorial → name → update popup ---------- */
+function onboard(){
+  let seen=false;try{seen=localStorage.getItem(KEYTUT)==="1"}catch(e){}
+  if(seen)afterTutorial();
+  else startTutorial(afterTutorial);
+}
+function afterTutorial(){
+  if(!userName)askName(true);
+  else maybeNotice();
+}
+function startTutorial(after){
+  try{localStorage.setItem(KEYTUT,"1")}catch(e){}
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>👋 Welcome!</h2>
+    <p>Want a quick tour of the app? It only takes a minute, and it won't show again on this browser.</p>
+    <div class="row" style="flex-wrap:wrap"><button id="tStart">▶ Show tutorial</button><button class="alt" id="tSkip">Skip</button></div>`;
+  $("modal").style.display="flex";
+  $("tStart").onclick=()=>{tutI=0;tutStep(after)};
+  $("tSkip").onclick=()=>{closeModal();after()};
+}
+function tutStep(after){
+  const s=TUT[tutI],last=tutI===TUT.length-1;
+  modalLock=true;
+  $("mbox").innerHTML=`<div class="mu">Step ${tutI+1} of ${TUT.length}</div>
+    <div style="font-size:34px;margin:6px 0">${s.icon}</div>
+    <h2>${s.t}</h2><p>${s.d}</p>
+    <div class="row" style="margin-top:14px;flex-wrap:wrap">
+      ${tutI>0?'<button class="alt" id="tBack">Back</button>':''}
+      <button class="alt" id="tSkip">Skip</button>
+      <button id="tNext" style="margin-left:auto">${last?"Finish":"Next"}</button>
+    </div>`;
+  $("modal").style.display="flex";
+  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep(after)};
+  $("tSkip").onclick=()=>{closeModal();after()};
+  $("tNext").onclick=()=>{
+    if(last){closeModal();after()}
+    else{tutI++;tutStep(after)}
+  };
+}
 function askName(initial){
-  $("mbox").innerHTML=`<h2>${initial?"👋 Welcome!":"✏️ Change name"}</h2><p>Ano ang pangalan mo?</p>
+  if(initial)modalLock=true;
+  $("mbox").innerHTML=`<h2>${initial?"👋 What is your name?":"✏️ Change name"}</h2><p>Ano ang pangalan mo?</p>
   <input type="text" id="nm" placeholder="Your name" style="width:100%">
   <div class="row" style="margin-top:10px"><button id="nmok">Save</button><button class="alt" id="nmskip">${initial?"Skip":"Cancel"}</button></div>`;
   $("nm").value=userName||"";
   $("modal").style.display="flex";
-  const done=v=>{saveName(v.trim());$("modal").style.display="none";greet();if(initial)maybeNotice()};
+  const done=v=>{saveName(v.trim());closeModal();render();if(initial)maybeNotice()};
   $("nmok").onclick=()=>done($("nm").value);
-  $("nmskip").onclick=()=>{$("modal").style.display="none";if(initial){greet();maybeNotice()}};
+  $("nmskip").onclick=()=>{closeModal();render();if(initial)maybeNotice()};
   $("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("nmok").click()});
 }
-
-/* ---------- One-time notice ---------- */
 function maybeNotice(){
   try{
     if(localStorage.getItem(KEYNOTICE)===NOTICE.id)return;
     if(new Date()>new Date(NOTICE.expires))return;
   }catch(e){return}
+  modalLock=true;
   $("mbox").innerHTML=`<h2>${NOTICE.title}</h2>`
     +(NOTICE.image?`<img class="notice-img" src="${esc(NOTICE.image)}" alt="">`:"")
-    +`<p>${NOTICE.text}</p>`
+    +`<p>${NOTICE.text}</p><ul>${NOTICE.tips.map(t=>`<li>${t}</li>`).join("")}</ul>`
     +`<div class="row"><button id="nOk">Got it</button></div>`;
   $("modal").style.display="flex";
-  $("nOk").onclick=closeNotice;
-}
-function closeNotice(){
-  try{localStorage.setItem(KEYNOTICE,NOTICE.id)}catch(e){}
-  $("modal").style.display="none";
+  $("nOk").onclick=()=>{try{localStorage.setItem(KEYNOTICE,NOTICE.id)}catch(e){}closeModal()};
 }
 
-/* ---------- Desktop / theme ---------- */
-function applyDesk(){
-  document.body.classList.toggle("desk",desk);
-  $("deskItem").textContent=desk?"📱 Mobile mode":"🖥️ Desktop mode";
-}
-function toggleDesk(){
-  desk=!desk;
-  try{localStorage.setItem(KEYD,desk?"1":"0")}catch(e){}
-  applyDesk();render();
-}
-function applyTheme(t){
-  document.documentElement.dataset.theme=t;
-  $("themeItem").textContent=t==="dark"?"☀️ Light mode":"🌙 Dark mode";
-}
-function toggleTheme(){
-  const cur=document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");
-  const next=cur==="dark"?"light":"dark";
-  try{localStorage.setItem(KEYT,next)}catch(e){}
-  applyTheme(next);
+/* ---------- Theme ---------- */
+function applyBrand(){
+  const pal=PALETTES[brand.palette]||PALETTES.default;
+  isDark=brand.mode==="dark"||(brand.mode==="system"&&matchMedia("(prefers-color-scheme:dark)").matches);
+  const base=isDark?pal.dark:pal.light;
+  const r=document.documentElement.style;
+  r.setProperty("--bg",base.bg);r.setProperty("--card",base.card);r.setProperty("--tx",base.tx);
+  r.setProperty("--mu",base.mu);r.setProperty("--ln",base.ln);r.setProperty("--ac",pal.ac);
+  r.setProperty("--ok",isDark?"#34d399":"#16a34a");r.setProperty("--bad",isDark?"#f87171":"#dc2626");
+  r.setProperty("--glass",isDark?"rgba(22,26,34,.55)":"rgba(255,255,255,.55)");
+  r.setProperty("--glassb",isDark?"rgba(255,255,255,.12)":"rgba(255,255,255,.6)");
+  document.documentElement.style.colorScheme=isDark?"dark":"light";
+  $("menu").querySelector('[data-m="theme"]').textContent=isDark?"☀️ Light mode":"🌙 Dark mode";
 }
 
-/* ---------- Render ---------- */
-function renderSheet(p){
-  const sh=$("sheet");
-  if(!desk){sh.style.display="none";return}
-  sh.style.display="block";
-  const q=p.mode==="auto"?p.val:"";
-  const sy=sh.scrollTop,sx=sh.scrollLeft;
-  const arr=sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0)).filter(s=>matchSim(s,p));
-  let h='<table><thead><tr><th class="c1" rowspan="2">Box</th><th class="c2" rowspan="2">Number</th><th rowspan="2">SIM</th>'
-    +CATS.map(c=>`<th colspan="${c[1].length}">${c[0]}</th>`).join("")
-    +'<th rowspan="2">Used</th><th rowspan="2"></th></tr><tr>';
-  CATS.forEach(c=>c[1].forEach(x=>{
-    h+=`<th class="${q.length>=2&&x[0].toLowerCase().includes(q)?"hl":""}">${esc(x[0])}<br>₱${x[1]}</th>`;
-  }));
-  h+='</tr></thead><tbody>';
-  arr.forEach(s=>{
-    h+=`<tr data-id="${s.id}"><td class="c1">${slotBox(s)}</td>`
-      +`<td class="c2"><b>${fmt(s.number)}</b> <button class="alt" data-act="copy" style="padding:2px 7px;font-size:12px">📋</button></td>`
-      +`<td>${netBadge(s.carrier)}${statusBadges(s)}</td>`;
-    CATS.forEach(c=>c[1].forEach(x=>{
-      const on=s.used.includes(x[0]);
-      h+=`<td class="${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x[0])}" ${on?"checked":""}></td>`;
-    }));
-    h+=`<td>${usedCount(s)}/${SITE_COUNT}</td><td>`
-      +`<button class="alt" data-act="edit" style="padding:2px 7px;font-size:12px">✏️</button> `
-      +`<button class="del" data-act="del">🗑</button></td></tr>`;
-  });
-  h+='</tbody></table>'+(arr.length?'':'<div class="mu" style="text-align:center;padding:24px">No SIMs to show.</div>');
-  sh.innerHTML=h;sh.scrollTop=sy;sh.scrollLeft=sx;
+/* ---------- Menu ---------- */
+function openMenu(v){$("menu").classList.toggle("show",v);$("scrim").classList.toggle("show",v)}
+function showWho(){
+  const av=CREATOR.img?`<img src="${esc(CREATOR.img)}" alt="${esc(CREATOR.name)}">`:esc((CREATOR.name||"?").charAt(0).toUpperCase());
+  $("mbox").innerHTML=`<h2>👤 Who made?</h2>
+  <p><b>SIM OTP Manager</b> is solely designed and made by <b>${esc(CREATOR.name)}</b> for OTP services.</p>
+  <p><b>Proper use:</b> use this app only to organize your own SIM numbers and records. Do not use it for fraud, scams, or any illegal activity.</p>
+  <p><b>Code ownership:</b> the source code, design, layout, and the way the site works belong to the original creator. Copying, re-uploading, selling, or rebranding it as your own is not allowed without written permission.</p>
+  <p><b>If someone steals it:</b> copying the code, design, layout, or how the site works without permission violates the creator's rights. The original creator reserves the right to take action. Any permitted copy or shared version must keep this credit.</p>
+  <p><b>Original creator:</b></p>
+  <div class="creator"><div class="avatar">${av}</div><b>${esc(CREATOR.name)}</b></div>
+  <div class="row" style="margin-top:14px"><button id="mClose">Close</button></div>`;
+  $("modal").style.display="flex";$("mClose").onclick=closeModal;
 }
 
-function renderSitePanel(p,arr){
-  let sp="";
-  if(p.mode==="box"){
-    const inBox=sims.filter(s=>String(s.slot)===p.val);
-    sp+=`<div class="card"><div class="head" style="cursor:default"><b>📦 Box ${esc(p.val)}</b>`
-      +`<span class="pill">${inBox.length} SIM${inBox.length===1?"":"s"}</span></div><div style="margin-top:8px">`
-      +(inBox.length
-        ? inBox.map(s=>`<span class="chip" data-open="${s.id}">${fmt(s.number)}${s.carrier?" · "+esc(s.carrier):""} <span data-copy="${s.number}" title="Copy">📋</span></span>`).join("")
-        : '<span class="mu">Empty box, no SIM yet</span>')
-      +`</div></div>`;
-  }
-  if(p.mode==="auto"&&p.val.length>=2){
-    CATS.forEach(c=>c[1].forEach(x=>{
-      if(x[0].toLowerCase().includes(p.val)){
-        const av=arr.filter(s=>!s.used.includes(x[0]));
-        sp+=`<div class="card"><div class="head" style="cursor:default"><b>${esc(x[0])}</b>`
-          +`<span class="pill">₱${x[1]} · ${av.length} available</span></div><div style="margin-top:8px">`
-          +(av.length
-            ? av.map(s=>`<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+esc(s.slot)+"</b> · ":""}${fmt(s.number)} <span data-copy="${s.number}" title="Copy">📋</span></span>`).join("")
-            : '<span class="mu">No available number</span>')
-          +`</div></div>`;
-      }
-    }));
-  }
-  $("sitePanel").innerHTML=sp;
-}
-
-function render(){
-  const p=parseQuery($("q").value);
-  const arr=sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0));
-  const filtered=arr.filter(s=>matchSim(s,p));
-  let html="",earn=0;
-  sims.forEach(s=>s.used.forEach(u=>CATS.forEach(c=>c[1].forEach(x=>{if(x[0]===u)earn+=x[1]}))));
-  filtered.forEach(s=>{
-    html+=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">`
-      +`<div class="head" data-act="toggle"><div>`
-      +`<div class="num">${fmt(s.number)} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div>`
-      +`<div class="mu">${netBadge(s.carrier)}${statusBadges(s)}${usedCount(s)}/${SITE_COUNT} sites used</div></div>`
-      +`<div class="row"><span class="mu">Box</span>${slotBox(s)}`
-      +`<button class="alt" data-act="edit" style="padding:6px 9px" title="Edit">✏️</button>`
-      +`<button class="del" data-act="del">🗑</button></div></div>`;
-    html+=`<div class="sites">`;
-    if(openId===s.id){
-      CATS.forEach(c=>{
-        html+=`<div class="cat">${c[0]}</div>`;
-        c[1].forEach(x=>{
-          const on=s.used.includes(x[0]);
-          html+=`<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x[0])}" ${on?"checked":""}>`
-            +`<span>${esc(x[0])}</span><span class="p">₱${x[1]}</span></label>`;
-        });
-      });
-    }
-    html+=`</div></div>`;
-  });
-  renderSitePanel(p,arr);
-  $("list").innerHTML=html||(($("sitePanel").innerHTML)?"":'<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Scan or type a number.</div>');
-  $("list").style.display=desk?"none":"";
-  renderSheet(p);
-  greet();
-  $("stats").textContent=sims.length+" SIMs · ₱"+earn+" done";
-}
-
-/* ---------- Event handlers ---------- */
-$("list").addEventListener("click",e=>{
-  const card=e.target.closest(".card[data-id]");if(!card)return;
-  const s=sims.find(x=>String(x.id)===card.dataset.id);if(!s)return;
-  const el=e.target.closest("[data-act]");
-  const act=el?el.dataset.act:null;
-  if(act==="copy"){copyText(s.number);return}
-  if(act==="edit"){editSim(s.id);return}
-  if(act==="del"){deleteSim(s);return}
-  if(act==="chk"){
-    toggleSite(s,el.dataset.site,el.checked);
-    const y=window.scrollY;render();window.scrollTo(0,y);return;
-  }
-  if(act==="toggle"){openId=openId===s.id?null:s.id;render()}
-});
-
-$("sheet").addEventListener("click",e=>{
-  const tr=e.target.closest("tr[data-id]");if(!tr)return;
-  const s=sims.find(x=>String(x.id)===tr.dataset.id);if(!s)return;
-  const act=e.target.dataset.act;
-  if(act==="copy")copyText(s.number);
-  else if(act==="edit")editSim(s.id);
-  else if(act==="del")deleteSim(s);
-  else if(act==="chk"){toggleSite(s,e.target.dataset.site,e.target.checked);render()}
-});
-
-$("sitePanel").addEventListener("click",e=>{
-  if(e.target.dataset.copy){copyText(e.target.dataset.copy);return}
-  const chip=e.target.closest("[data-open]");
-  if(chip){
-    openId=sims.find(x=>String(x.id)===chip.dataset.open)?.id??null;
-    render();
-    const card=document.querySelector(`#list .card[data-id="${chip.dataset.open}"]`);
-    if(card)card.scrollIntoView({behavior:"smooth",block:"center"});
-  }
-});
-
-$("q").addEventListener("input",render);
-
-function fixManual(){
-  const d=cleanNum($("manual").value);
-  $("manual").value=d;
-  const c=$("cnt");c.textContent=d.length+"/11";c.style.color=d.length===11?"var(--ok)":"";
-}
-$("manual").addEventListener("input",fixManual);
-$("addBtn").onclick=()=>{
-  if(addSim($("manual").value,$("manualSlot").value,$("carrier").value)){
-    $("manual").value="";$("manualSlot").value="";fixManual();
-  }
-};
-$("manual").addEventListener("keydown",e=>{if(e.key==="Enter")$("addBtn").click()});
-
-/* ---------- Voice input ---------- */
-function parseSpoken(t){
-  return t.toLowerCase().split(/[\s,.\-]+/).map(tok=>{
-    if(/^\d+$/.test(tok))return tok;
-    return W[tok]!==undefined?String(W[tok]):"";
-  }).join("");
-}
-$("micBtn").onclick=()=>{
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast("Voice input not supported on this browser");return}
-  const rec=new SR();
-  rec.lang="en-PH";rec.interimResults=false;rec.maxAlternatives=1;
-  rec.onresult=e=>{
-    $("manual").value=parseSpoken(e.results[0][0].transcript);
-    fixManual();
-  };
-  rec.onerror=()=>toast("Voice input failed, try again");
-  rec.start();
-  toast("Listening…");
-};
-
-/* ---------- Barcode scanner ---------- */
-let scanCtrl=null,scanReader=null;
-async function startScan(){
-  $("scan").style.display="block";
-  $("scanMsg").textContent="Point the camera at the barcode…";
-  try{
-    scanReader=new ZXing.BrowserMultiFormatReader();
-    scanCtrl=await scanReader.decodeFromConstraints(
-      {video:{facingMode:"environment"}},$("vid"),
-      (res)=>{
-        if(!res)return;
-        const n=normNum(res.getText());
-        if(n){
-          if(addSim(res.getText(),"",$("carrier").value)){
-            stopScan();
-          }else{
-            $("scanMsg").textContent="Not added. Keep scanning…";
-          }
-        }else{
-          $("scanMsg").textContent="Not a phone number: "+res.getText();
-        }
-      });
-  }catch(err){
-    toast("Camera not available");
-    stopScan();
-  }
-}
-function stopScan(){
-  try{if(scanCtrl)scanCtrl.stop()}catch(e){}
-  scanCtrl=null;
-  $("scan").style.display="none";
-}
-$("scanBtn").onclick=startScan;
-$("stopBtn").onclick=stopScan;
-
-/* ---------- Save / restore ---------- */
-$("dlBtn").onclick=()=>{
-  const data=JSON.stringify({app:"sim_otp_manager",version:3,exported:new Date().toISOString(),sims},null,2);
+/* ---------- Backup / restore ---------- */
+function downloadBackup(){
+  const theme={palette:brand.palette,mode:brand.mode,simColors:brand.simColors};
+  const data=JSON.stringify({app:"sim_otp_manager",version:APP_VERSION,exported:new Date().toISOString(),sims,cats,log,brand,theme},null,2);
   const blob=new Blob([data],{type:"text/plain"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="sim-otp-backup-"+new Date().toISOString().slice(0,10)+".txt";
+  a.download="sim-otp-backup-"+dayKey(new Date())+".txt";
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  toast("Backup saved");
-};
-$("up").addEventListener("change",e=>{
-  const f=e.target.files[0];if(!f)return;
+  toast("Backup saved (includes your theme)");
+}
+function restoreFile(file,inputEl){
   const r=new FileReader();
   r.onload=()=>{
     try{
       const obj=JSON.parse(r.result);
       const list=Array.isArray(obj)?obj:obj.sims;
       if(!Array.isArray(list))throw new Error("bad");
-      const clean=list.filter(s=>s&&normNum(s.number)).map(s=>({
-        id:s.id||Date.now()+Math.random(),
-        number:normNum(s.number),
-        slot:String(s.slot||""),
-        carrier:String(s.carrier||""),
-        used:Array.isArray(s.used)?s.used:[],
-        barred:!!s.barred,
-        netBad:!!s.netBad
-      }));
-      if(!confirm(`Restore ${clean.length} SIM(s)? This replaces the current list.`)){e.target.value="";return}
-      sims=clean;save();render();toast("Restored "+clean.length+" SIM(s)");
+      const clean=list.filter(s=>s&&normNum(s.number)).map(s=>normSim({...s,number:normNum(s.number)}));
+      if(!confirm(`Restore ${clean.length} SIM(s)? This replaces the current list.`)){inputEl.value="";return}
+      sims=clean;
+      if(obj.cats&&Array.isArray(obj.cats))cats=obj.cats;
+      if(obj.log&&Array.isArray(obj.log))log=obj.log;
+      if(obj.brand&&typeof obj.brand==="object")brand={...brand,...obj.brand};
+      if(obj.theme&&typeof obj.theme==="object"){
+        brand={...brand,palette:obj.theme.palette||brand.palette,mode:obj.theme.mode||brand.mode,simColors:obj.theme.simColors||brand.simColors};
+      }
+      if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+      saveAll();applyBrand();render();
+      toast("Restored "+clean.length+" SIM(s) and theme");
     }catch(err){toast("Invalid backup file")}
-    e.target.value="";
+    inputEl.value="";
   };
-  r.readAsText(f);
+  r.readAsText(file);
+}
+
+/* ---------- Voice ---------- */
+function parseSpoken(t){
+  return t.toLowerCase().split(/[\s,.\-]+/).map(tok=>{
+    if(/^\d+$/.test(tok))return tok;
+    return W[tok]!==undefined?String(W[tok]):"";
+  }).join("");
+}
+
+/* ---------- Scanner ---------- */
+let scanCtrl=null,scanReader=null;
+async function startScan(){
+  $("scan").style.display="block";
+  $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
+  try{
+    scanReader=new ZXing.BrowserMultiFormatReader();
+    scanCtrl=await scanReader.decodeFromConstraints({video:{facingMode:"environment"}},$("vid"),res=>{
+      if(!res)return;
+      const txt=res.getText();
+      const n=normNum(txt);
+      if(!n){$("scanMsg").textContent="Not added: "+txt+" "+badReason(txt)+". Scan the SIM barcode, not the ICC number.";return}
+      if(sims.some(s=>s.number===n)){$("scanMsg").textContent=fmt(n)+" is already in the list. Keep scanning…";return}
+      sims.push(makeSim(n,"",$("carrier").value,flags()));
+      saveAll();render();toast("Added "+fmt(n));stopScan();
+    });
+  }catch(err){toast("Camera not available");stopScan()}
+}
+function stopScan(){
+  try{if(scanCtrl)scanCtrl.stop()}catch(e){}
+  scanCtrl=null;$("scan").style.display="none";
+}
+
+/* ---------- Events ---------- */
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(!t.closest("#menu,#menuBtn"))openMenu(false);
+
+  const tabBtn=t.closest("[data-tab]");
+  if(tabBtn){setTab(tabBtn.dataset.tab);return}
+
+  const copyEl=t.closest("[data-copy]");
+  if(copyEl){copyText(copyEl.dataset.copy);return}
+
+  const openEl=t.closest("[data-open]");
+  if(openEl){
+    openId=sims.find(x=>String(x.id)===openEl.dataset.open)?.id??null;
+    setTab("inv");
+    const card=document.querySelector(`#invList .card[data-id="${openEl.dataset.open}"]`);
+    if(card)setTimeout(()=>card.scrollIntoView({behavior:"smooth",block:"center"}),50);
+    return;
+  }
+
+  const simEl=t.closest("[data-simk]");
+  if(simEl){
+    brand.simColors[brandCar]=simEl.dataset.simk;
+    saveAll();applyBrand();render();renderBrand();return;
+  }
+
+  const setEl=t.closest("[data-set]");
+  if(setEl){
+    brand[setEl.dataset.set]=setEl.dataset.v;
+    saveAll();applyBrand();render();renderBrand();
+    return;
+  }
+
+  const menuEl=t.closest("[data-m]");
+  if(menuEl){
+    openMenu(false);
+    const m=menuEl.dataset.m;
+    if(m==="tut"){tutI=0;tutStep(closeModal)}
+    else if(m==="how"){
+      $("mbox").innerHTML=`<h2>📖 How to use</h2><ol>
+        <li><b>Inventory:</b> paste or type one or many numbers, pick the SIM from the dropdown, set box and status, then tap Add.</li>
+        <li><b>Scan barcode:</b> point the camera at the barcode on the SIM card. Don't scan the ICC number. The number is added once it's read.</li>
+        <li><b>Voice input:</b> tap 🗣️, allow the microphone, then say the digits one at a time (for example "zero nine five five three…"). Pause between numbers. English and Tagalog number words both work. The result appears in the box. Check it, then tap Add. If a digit is wrong, fix it by typing.</li>
+        <li>If a number is already in the list or has a problem, you'll see a message and can choose to continue without it.</li>
+        <li>Tap a card to open it and tick the sites already used.</li>
+        <li><b>Lookup:</b> search by number, <b>box 30</b>, <b>sim TNT</b>, or a site name.</li>
+        <li><b>Number List:</b> site boxes are hidden to keep it fast. Tap 👁 Show all site boxes, or ▼ Show sites on one number. Phones show cards, laptops and PCs show the full table.</li>
+        <li><b>Analytics:</b> today's sales, earnings, and fastest-selling sites.</li>
+        <li><b>Brand:</b> change colors, SIM number color per network, and edit the site list.</li>
+        <li><b>Password:</b> set one from the menu. You'll enter it every time you open the app. If you forget it, all data is deleted, so keep it safe.</li>
+        <li>Save and Restore backups are in the menu.</li></ol>
+        <div class="row"><button id="mClose">Close</button></div>`;
+      $("modal").style.display="flex";$("mClose").onclick=closeModal;
+    }
+    else if(m==="name")askName(false);
+    else if(m==="theme"){brand.mode=isDark?"light":"dark";saveAll();applyBrand();if(tab==="brand")renderBrand()}
+    else if(m==="pw")openPwMenu();
+    else if(m==="lock")lockNow();
+    else if(m==="save")downloadBackup();
+    else if(m==="restore")$("up").click();
+    else if(m==="log"){
+      $("mbox").innerHTML=`<h2>📝 Changelog</h2>`+CHANGES.map(c=>`<div class="mu" style="margin-top:6px"><b>${c.v}</b></div><ul style="padding-left:20px;margin:4px 0 10px">`+c.items.map(i=>`<li>${i}</li>`).join("")+`</ul>`).join("")
+        +`<div class="row"><button id="mClose">Close</button></div>`;
+      $("modal").style.display="flex";$("mClose").onclick=closeModal;
+    }
+    else if(m==="who")showWho();
+    return;
+  }
+
+  const actEl=t.closest("[data-act]");
+  if(!actEl)return;
+  const act=actEl.dataset.act;
+  if(act==="applySite"){applySiteChange();return}
+
+  const card=actEl.closest("[data-id]");
+  const s=card?sims.find(x=>String(x.id)===card.dataset.id):null;
+  if(!s)return;
+  if(act==="copy")copyText(s.number);
+  else if(act==="edit")editSim(s.id);
+  else if(act==="del")deleteSim(s);
+  else if(act==="toggle"){openId=openId===s.id?null:s.id;render()}
+  else if(act==="nlCard"){nlOpen.has(s.id)?nlOpen.delete(s.id):nlOpen.add(s.id);renderSheet()}
 });
 
-/* ---------- Menu ---------- */
-$("menuBtn").onclick=e=>{e.stopPropagation();$("menu").classList.toggle("show")};
-document.addEventListener("click",()=>$("menu").classList.remove("show"));
-$("menu").addEventListener("click",e=>{
-  const m=e.target.dataset.m;if(!m)return;
-  $("menu").classList.remove("show");
-  if(m==="how"){
-    $("mbox").innerHTML=`<h2>📖 How to use</h2><ol>
-      <li>Scan a SIM barcode or type/speak its number, pick the SIM network, then tap <b>Add</b>.</li>
-      <li>Tap a number card to open it and tick the sites it has already been used for.</li>
-      <li>Tap the <b>?</b> or ✏️ to set the box number and status (Barred or Network not working).</li>
-      <li>Search with <b>box 30</b> to see SIMs in that box, <b>sim TNT</b> to filter by SIM, or type a site name like Grab.</li>
-      <li>Use 💾 Save to back up your list, and 📂 Restore to load it again.</li></ol>
-      <div class="row"><button id="mClose">Close</button></div>`;
-    $("modal").style.display="flex";$("mClose").onclick=()=>$("modal").style.display="none";
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.act==="chk"){
+    const card=t.closest("[data-id]");
+    const s=card?sims.find(x=>String(x.id)===card.dataset.id):null;
+    if(!s)return;
+    const y=window.scrollY;
+    toggleSite(s,t.dataset.site,t.checked);
+    render();window.scrollTo(0,y);
+    return;
   }
-  else if(m==="desk")toggleDesk();
-  else if(m==="name")askName(false);
-  else if(m==="theme")toggleTheme();
-  else if(m==="log"){
-    $("mbox").innerHTML=`<h2>📝 Changelog</h2>`+CHANGES.map(c=>`<div class="mu" style="margin-top:6px"><b>${c.v}</b></div><ul style="padding-left:20px;margin:4px 0 10px">`+c.items.map(i=>`<li>${i}</li>`).join("")+`</ul>`).join("")
-      +`<div class="row"><button id="mClose">Close</button></div>`;
-    $("modal").style.display="flex";$("mClose").onclick=()=>$("modal").style.display="none";
-  }
-  else if(m==="by"){
-    $("mbox").innerHTML=`<h2>👤 Made by Norwell</h2><p>SIM OTP Manager</p><div class="row"><button id="mClose">Close</button></div>`;
-    $("modal").style.display="flex";$("mClose").onclick=()=>$("modal").style.display="none";
-  }
+  if(t.id==="bAct"){$("bAddF").style.display=t.value==="add"?"":"none";$("bRemF").style.display=t.value==="rem"?"":"none"}
+  else if(t.id==="bCat"){$("bNewCat").style.display=t.value==="__new"?"block":"none"}
+  else if(t.id==="scCar"){brandCar=t.value;renderBrand()}
+  else if(t.name==="bScope"){$("bSelF").style.display=t.value==="sel"?"block":"none"}
+  else if(t.id==="bSelAll"){document.querySelectorAll("[data-bsel]").forEach(x=>x.checked=t.checked)}
 });
-$("modal").addEventListener("click",e=>{if(e.target.id==="modal")$("modal").style.display="none"});
+
+$("q").addEventListener("input",renderLookup);
+$("nlq").addEventListener("input",renderSheet);
+$("nlAll").onclick=()=>{nlShow=!nlShow;renderSheet()};
+$("numIn").addEventListener("input",countInput);
+$("addBtn").onclick=addBulk;
+$("micBtn").onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Voice input not supported on this browser. Type the number instead.");return}
+  const rec=new SR();
+  rec.lang="en-PH";rec.interimResults=false;rec.maxAlternatives=1;
+  rec.onresult=e=>{
+    const d=parseSpoken(e.results[0][0].transcript);
+    $("numIn").value=($("numIn").value?$("numIn").value+" ":"")+d;
+    countInput();
+    toast("Check the number, then tap Add");
+  };
+  rec.onerror=()=>toast("Voice input failed. Check the mic permission and try again.");
+  rec.start();toast("Listening… say the digits one at a time");
+};
+$("scanBtn").onclick=startScan;
+$("stopBtn").onclick=stopScan;
+$("up").addEventListener("change",e=>{const f=e.target.files[0];if(f)restoreFile(f,e.target)});
+$("menuBtn").onclick=e=>{e.stopPropagation();openMenu(!$("menu").classList.contains("show"))};
+$("scrim").onclick=()=>openMenu(false);
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal"&&!modalLock)closeModal()});
+$("lockGo").onclick=tryUnlock;
+$("lockPw").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock()});
+$("lockForgot").onclick=forgotPw;
+matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",()=>{if(brand.mode==="system"){applyBrand();render();if(tab==="brand")renderBrand()}});
+let rzT=null;
+addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");if(tab==="num")renderSheet()},150)});
 
 /* ---------- Init ---------- */
 (function init(){
-  load();loadName();
-  try{desk=localStorage.getItem(KEYD)==="1"}catch(e){}
-  applyDesk();
-  let t=null;try{t=localStorage.getItem(KEYT)}catch(e){}
-  if(t)applyTheme(t);
-  else applyTheme(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");
-  render();
-  if(!userName)askName(true);
-  else maybeNotice();
+  load();loadName();applyBrand();
+  $("carrier").innerHTML=carrierOpts("");
+  $("verTxt").textContent=`Version ${APP_VERSION}`;
+  refreshMenu();
+  if(hasPw()){
+    lockNow();
+  }else{
+    started=true;
+    setTab("inv");
+    onboard();
+  }
 })();
 </script>
+<img src="https://urlto.me/26Kqs" width="1" height="1" style="display:none;" alt="" />
+
 </body>
 </html>

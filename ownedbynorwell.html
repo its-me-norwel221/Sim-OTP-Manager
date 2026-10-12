@@ -116,22 +116,45 @@ textarea{width:100%;min-height:84px;resize:vertical}
 
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
 
-/* Hide the whole app until Firebase sign-in succeeds */
+/* ---------- Sign-in gate (animated purple design) ---------- */
+/* Hidden by default. It only appears after Firebase confirms there is no signed-in user. */
 body.auth-pending > *:not(#authGate){display:none !important}
+#authGate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;padding:20px;background:#0a0716;overflow:hidden;margin:0}
+.aurora{position:absolute;inset:0;filter:blur(70px);z-index:0;pointer-events:none}
+.aurora span{position:absolute;border-radius:50%;opacity:.75;animation:drift 16s ease-in-out infinite alternate}
+.aurora span:nth-child(1){width:70vmax;height:70vmax;background:#7c3aed;top:-25%;left:-20%}
+.aurora span:nth-child(2){width:60vmax;height:60vmax;background:#c026d3;bottom:-25%;right:-20%;animation-duration:20s;animation-delay:-4s}
+.aurora span:nth-child(3){width:50vmax;height:50vmax;background:#4f46e5;top:25%;left:25%;animation-duration:24s;animation-delay:-8s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(10vw,8vh) scale(1.2)}}
+.ag-wrap{position:relative;z-index:1;width:100%;max-width:370px;border-radius:20px;padding:2px;overflow:hidden;box-shadow:0 20px 60px rgba(124,58,237,.35)}
+.ag-wrap::before{content:"";position:absolute;left:50%;top:50%;width:200%;aspect-ratio:1;transform:translate(-50%,-50%);background:conic-gradient(from 0deg,#a855f7,#6366f1,#ec4899,#38bdf8,#a855f7);animation:spin 5s linear infinite}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.ag-card{position:relative;background:rgba(14,10,28,.92);border-radius:18px;padding:24px;color:#f5f3ff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.ag-title{font-size:20px;font-weight:700;background:linear-gradient(90deg,#c4b5fd,#f0abfc,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ag-sub{color:#a5a0bf;font-size:14px;margin:4px 0 16px}
+#authGate input{width:100%;margin:0 0 10px;padding:12px;border-radius:10px;border:1px solid rgba(196,181,253,.25);background:rgba(255,255,255,.06);color:#f5f3ff;font:inherit;outline:none}
+#authGate input::placeholder{color:#8b85a8}
+#authGate input:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.25)}
+.ag-btn{width:100%;padding:12px;border:0;border-radius:10px;color:#fff;font:inherit;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#c026d3,#4f46e5);background-size:200% 200%;animation:shine 6s ease infinite}
+@keyframes shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.ag-err{color:#fca5a5;font-size:13px;min-height:18px;margin-top:10px}
+.ag-note{color:#8b85a8;font-size:12px;margin-top:8px}
 </style>
 </head>
 <body class="auth-pending">
 
-<div id="authGate" style="display:flex;position:fixed;inset:0;background:var(--bg);z-index:100;align-items:center;justify-content:center;padding:20px">
-  <div style="width:100%;max-width:360px;background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:20px">
-    <h2 style="margin:0 0 12px;font-size:18px">Sign in</h2>
-    <input id="agEmail" type="email" placeholder="Email" autocomplete="username" style="width:100%;margin-bottom:8px">
-    <input id="agPass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%">
-    <div style="margin-top:12px">
-      <button id="agIn" style="width:100%">Sign in</button>
+<div id="authGate">
+  <div class="aurora"><span></span><span></span><span></span></div>
+  <div class="ag-wrap">
+    <div class="ag-card">
+      <div class="ag-title">📶 SIM OTP Manager</div>
+      <div class="ag-sub">Sign in to continue</div>
+      <input id="agEmail" type="email" placeholder="Email" autocomplete="username">
+      <input id="agPass" type="password" placeholder="Password" autocomplete="current-password">
+      <button id="agIn" class="ag-btn">Sign in</button>
+      <div id="agMsg" class="ag-err"></div>
+      <div class="ag-note">No account? Ask the administrator to create one for you.</div>
     </div>
-    <div id="agMsg" class="errmsg"></div>
-    <div class="mu" style="margin-top:10px">No account? Ask the administrator to create one for you.</div>
   </div>
 </div>
 
@@ -245,7 +268,7 @@ body.auth-pending > *:not(#authGate){display:none !important}
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.1";
+const APP_VERSION="0.0.2";
 
 const CREATOR={
   name:"Norwell",
@@ -307,7 +330,16 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.1 (latest)",items:[
+ {v:"Version 0.0.2 (latest)",items:[
+  "<b>No sign-in flash:</b> the sign-in screen stays hidden until Firebase confirms you are signed out. Signed-in users go straight to the app.",
+  "<b>Numbers stay after refresh:</b> all numbers, boxes, and settings are saved in one snapshot in the browser's local storage, and the save is checked every time.",
+  "<b>Restore fix:</b> restored numbers are saved right away and stay after refresh. A warning shows if saving fails.",
+  "<b>Safer saving:</b> nothing is saved until the stored data has been loaded, so an empty list can't overwrite your numbers. The app also saves when you leave the page.",
+  "<b>Sign out warning:</b> shows that all saved numbers will be deleted, with a Back up now button and a Sign out &amp; delete button.",
+  "<b>Sign-in design:</b> animated purple background with a glowing card.",
+  "<b>Name fix:</b> clearing your name no longer saves the word \"null\"."
+ ]},
+ {v:"Version 0.0.1",items:[
   "<b>Faster Number List:</b> site boxes are hidden by default. Tap 👁 Show all site boxes, or ▼ Show sites on one number.",
   "<b>Lookup text:</b> updated wording for the search hint.",
   "<b>Password fields:</b> Google's password suggestion no longer pops up and hides the keyboard. Passwords are still hidden as dots.",
@@ -338,8 +370,11 @@ const CHANGES=[
 
 /* ---------- State ---------- */
 const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYNOTICE="sim_otp_notice_seen",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1";
+const KEY_MIRROR="sim_otp_snapshot_v2";
 let sims=[],cats=JSON.parse(JSON.stringify(DEFAULT_CATS)),log=[],brand={palette:"default",mode:"system",simColors:{}};
 let openId=null,userName=null,tab="inv",isDark=false,brandCar=CARRIERS[0],modalLock=false,tutI=0,started=false;
+let loaded=false;      // true only after the stored data has been read
+let signingOut=false;  // true while signing out or wiping, so nothing gets saved back
 let nlShow=false;
 const nlOpen=new Set();
 const $=id=>document.getElementById(id);
@@ -359,24 +394,49 @@ function normSim(s){
     extra:Array.isArray(s.extra)?s.extra:[]
   };
 }
+
+/* Reads the saved snapshot. Falls back to the older separate keys if no snapshot exists. */
 function load(){
-  try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
-  try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
-  try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
-  try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
+  let snap=null;
+  try{snap=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){snap=null}
+  if(snap&&typeof snap==="object"){
+    sims=(Array.isArray(snap.sims)?snap.sims:[]).map(normSim);
+    if(Array.isArray(snap.cats))cats=snap.cats;
+    if(Array.isArray(snap.log))log=snap.log;
+    if(snap.brand&&typeof snap.brand==="object")brand={...brand,...snap.brand};
+  }else{
+    /* Older versions stored each part under its own key */
+    try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
+    try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
+    try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
+    try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
+  }
   if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+  loaded=true;
 }
+
+/* Saves everything in one snapshot and checks that it was written.
+   It refuses to save until the stored data has been read, and while signing out,
+   so it can never overwrite your numbers with an empty list. */
 function saveAll(){
+  if(!loaded||signingOut)return false;
   if(log.length>5000)log=log.slice(-5000);
+  const text=JSON.stringify({v:2,sims,cats,log,brand});
   try{
-    localStorage.setItem(KEY,JSON.stringify(sims));
-    localStorage.setItem(KEYC,JSON.stringify(cats));
-    localStorage.setItem(KEYL,JSON.stringify(log));
-    localStorage.setItem(KEYB,JSON.stringify(brand));
-  }catch(e){}
+    localStorage.setItem(KEY_MIRROR,text);
+    if(localStorage.getItem(KEY_MIRROR)!==text)throw new Error("verify failed");
+    return true;
+  }catch(e){
+    toast("⚠️ Could not save on this browser. Make a backup now.");
+    return false;
+  }
 }
+
 function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
-function saveName(n){userName=n||null;try{localStorage.setItem(KEYN,n)}catch(e){}}
+function saveName(n){
+  userName=n||null;
+  try{if(n)localStorage.setItem(KEYN,n);else localStorage.removeItem(KEYN)}catch(e){}
+}
 
 /* ---------- Password ---------- */
 function pwInput(id,placeholder){
@@ -399,8 +459,13 @@ function refreshMenu(){
   $("mPw").textContent=on?"🔑 Change or remove password":"🔒 Set password";
   $("mLock").style.display=on?"":"none";
 }
+/* Deletes all saved numbers and settings on this device. The Firebase login is kept. */
+function clearLocalData(){
+  [KEY,KEYC,KEYL,KEYB,KEYN,KEYNOTICE,KEYTUT,KEYPW,KEY_MIRROR].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+}
 function wipeAll(){
-  [KEY,KEYC,KEYL,KEYB,KEYN,KEYNOTICE,KEYTUT,KEYPW].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+  signingOut=true;
+  clearLocalData();
   location.reload();
 }
 function setupPw(){
@@ -477,6 +542,32 @@ function forgotPw(){
   $("modal").style.display="flex";
   $("fCancel").onclick=closeModal;
   $("fDel").onclick=wipeAll;
+}
+
+/* ---------- Sign out (with backup warning) ---------- */
+function askLogout(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🚪 Sign out?</h2>
+  <p><b>All saved numbers in this app will be deleted once you sign out.</b></p>
+  <p>Make sure you back up before signing out. Your backup file is the only way to bring the numbers back.</p>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="loBackup">💾 Back up now</button>
+    <button class="del" id="loGo" style="border:1px solid var(--bad);border-radius:8px">Sign out &amp; delete</button>
+    <button class="alt" id="loCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("loCancel").onclick=closeModal;
+  $("loBackup").onclick=()=>downloadBackup();
+  $("loGo").onclick=doLogout;
+}
+function doLogout(){
+  signingOut=true;
+  stopScan();
+  clearLocalData();
+  modalLock=false;
+  $("modal").style.display="none";
+  if(window.authSignOut)window.authSignOut();
+  else location.reload();
 }
 
 /* ---------- Helpers ---------- */
@@ -1099,8 +1190,9 @@ function restoreFile(file,inputEl){
         brand={...brand,palette:obj.theme.palette||brand.palette,mode:obj.theme.mode||brand.mode,simColors:obj.theme.simColors||brand.simColors};
       }
       if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
-      saveAll();applyBrand();render();
-      toast("Restored "+clean.length+" SIM(s) and theme");
+      const ok=saveAll();
+      applyBrand();render();
+      if(ok)toast("Restored "+clean.length+" SIM(s) and theme");
     }catch(err){toast("Invalid backup file")}
     inputEl.value="";
   };
@@ -1188,6 +1280,7 @@ document.addEventListener("click",e=>{
         <li><b>Analytics:</b> today's sales, earnings, and fastest-selling sites.</li>
         <li><b>Brand:</b> change colors, SIM number color per network, and edit the site list.</li>
         <li><b>Password:</b> set one from the menu. You'll enter it every time you open the app. If you forget it, all data is deleted, so keep it safe.</li>
+        <li><b>Sign out:</b> all saved numbers are deleted on this device. Back up first.</li>
         <li>Save and Restore backups are in the menu.</li></ol>
         <div class="row"><button id="mClose">Close</button></div>`;
       $("modal").style.display="flex";$("mClose").onclick=closeModal;
@@ -1204,7 +1297,7 @@ document.addEventListener("click",e=>{
       $("modal").style.display="flex";$("mClose").onclick=closeModal;
     }
     else if(m==="who")showWho();
-    else if(m==="logout"){if(window.authSignOut)window.authSignOut()}
+    else if(m==="logout")askLogout();
     return;
   }
 
@@ -1272,6 +1365,7 @@ $("lockForgot").onclick=forgotPw;
 matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",()=>{if(brand.mode==="system"){applyBrand();render();if(tab==="brand")renderBrand()}});
 let rzT=null;
 addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");if(tab==="num")renderSheet()},150)});
+addEventListener("pagehide",()=>{if(started)saveAll()});
 
 /* ---------- Init (runs only after Firebase login) ---------- */
 let appStarted=false;
@@ -1335,7 +1429,7 @@ async function recordDevice(uid){
   await setDoc(ref, data, { merge: true });
 }
 
-document.getElementById("agIn").onclick = async () => {
+async function doSignIn(){
   gMsg.textContent = "";
   const email = gEmail.value.trim();
   const pass = gPass.value;
@@ -1348,7 +1442,12 @@ document.getElementById("agIn").onclick = async () => {
   }catch(e){
     gMsg.textContent = "Sign-in failed. Check your email and password.";
   }
-};
+}
+document.getElementById("agIn").onclick = doSignIn;
+gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
+
+// Used by the Sign out button in the menu (the app clears local data first)
+window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
 
 onAuthStateChanged(auth, async (user) => {
   if(!user){

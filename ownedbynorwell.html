@@ -92,6 +92,7 @@ textarea{width:100%;min-height:84px;resize:vertical}
 .menu .mi{padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:500}
 .menu .mi:hover,.menu .mi:active{background:rgba(127,127,127,.16)}
 .menu .ver{font-size:11px;color:var(--mu);padding:8px 12px 6px;border-top:1px solid var(--ln);margin-top:4px}
+#seeMore{color:var(--ac);cursor:pointer;font-weight:700;margin-left:4px}
 
 /* Modal */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:90}
@@ -117,7 +118,7 @@ textarea{width:100%;min-height:84px;resize:vertical}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
 
 /* ---------- Sign-in gate (animated purple design) ---------- */
-/* Hidden by default. It only appears after Firebase confirms there is no signed-in user. */
+/* The whole app stays hidden until the login check finishes. */
 body.auth-pending > *:not(#authGate){display:none !important}
 #authGate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;padding:20px;background:#0a0716;overflow:hidden;margin:0}
 .aurora{position:absolute;inset:0;filter:blur(70px);z-index:0;pointer-events:none}
@@ -268,25 +269,11 @@ body.auth-pending > *:not(#authGate){display:none !important}
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.2";
+const APP_VERSION="0.0.3";
 
 const CREATOR={
   name:"Norwell",
   img:"https://i.ibb.co/bRHJQNDL/1791722795270-3.jpg"
-};
-
-const NOTICE={
-  id:"notice_password_oct12",
-  image:"",                         // paste your image URL here, or leave "" for no image
-  title:"📢 New update!",
-  text:"Here's what's new and how to get the most out of the app:",
-  tips:[
-    "🔒 <b>Password:</b> go to ☰ Menu → Set password to lock the app. You'll enter it every time you open the app.",
-    "⚠️ <b>Forgot password:</b> if you forget it, all data in the app is deleted. Keep your password somewhere safe.",
-    "📷 <b>Scan:</b> point the camera at the barcode on the SIM card only. Don't scan the ICC number.",
-    "💾 <b>Backup:</b> your saved theme and SIM colors are included in the backup."
-  ],
-  expires:"2026-10-17T23:59:59"     // popup stops showing after this date
 };
 
 const TUT=[
@@ -330,11 +317,17 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.2 (latest)",items:[
-  "<b>No sign-in flash:</b> the sign-in screen stays hidden until Firebase confirms you are signed out. Signed-in users go straight to the app.",
-  "<b>Numbers stay after refresh:</b> all numbers, boxes, and settings are saved in one snapshot in the browser's local storage, and the save is checked every time.",
-  "<b>Restore fix:</b> restored numbers are saved right away and stay after refresh. A warning shows if saving fails.",
-  "<b>Safer saving:</b> nothing is saved until the stored data has been loaded, so an empty list can't overwrite your numbers. The app also saves when you leave the page.",
+ {v:"Version 0.0.3 (latest)",items:[
+  "<b>Numbers stay after you close the page:</b> your data is now saved in two places on the phone (local storage and the browser database). The newest copy loads when you open the app. The browser is also asked to keep the data.",
+  "<b>Tutorial moved:</b> it no longer opens by itself. Find it in ☰ Menu → 🎓 Tutorial.",
+  "<b>Name prompt after sign-in:</b> it appears only after you sign in successfully, and only if no name is saved yet.",
+  "<b>What's new:</b> the update notes are now under the version number. Tap See more to read them.",
+  "<b>Sign out and wipe:</b> both saved copies are cleared before you are signed out, so the numbers can't come back."
+ ]},
+ {v:"Version 0.0.2",items:[
+  "<b>No sign-in flash:</b> the sign-in screen stays hidden until Firebase confirms you are signed out.",
+  "<b>Restore fix:</b> restored numbers are saved right away. A warning shows if saving fails.",
+  "<b>Safer saving:</b> nothing is saved until the stored data has been loaded, so an empty list can't overwrite your numbers.",
   "<b>Sign out warning:</b> shows that all saved numbers will be deleted, with a Back up now button and a Sign out &amp; delete button.",
   "<b>Sign-in design:</b> animated purple background with a glowing card.",
   "<b>Name fix:</b> clearing your name no longer saves the word \"null\"."
@@ -348,7 +341,7 @@ const CHANGES=[
   "<b>Forgot password:</b> resets the app and deletes all saved data. Remember your password.",
   "<b>Scan tip:</b> scan only the barcode on the SIM card, not the ICC number.",
   "<b>Voice input guide:</b> the tutorial explains how voice works.",
-  "<b>Tutorial:</b> a short 8-step tour on first open. Replay it from the menu.",
+  "<b>Tutorial:</b> a short 8-step tour. Replay it from the menu.",
   "<b>Backup keeps your theme:</b> color style, light/dark mode, and SIM number colors are saved and restored."
  ]},
  {v:"Earlier",items:[
@@ -369,15 +362,54 @@ const CHANGES=[
 ];
 
 /* ---------- State ---------- */
-const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYNOTICE="sim_otp_notice_seen",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1";
-const KEY_MIRROR="sim_otp_snapshot_v2";
+const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1";
+const KEY_MIRROR="sim_otp_snapshot_v3";
+const IDB_NAME="sim_otp_db",IDB_STORE="kv",IDB_ITEM="snapshot";
 let sims=[],cats=JSON.parse(JSON.stringify(DEFAULT_CATS)),log=[],brand={palette:"default",mode:"system",simColors:{}};
 let openId=null,userName=null,tab="inv",isDark=false,brandCar=CARRIERS[0],modalLock=false,tutI=0,started=false;
-let loaded=false;      // true only after the stored data has been read
+let loaded=false;      // true only after the saved data has been read
 let signingOut=false;  // true while signing out or wiping, so nothing gets saved back
 let nlShow=false;
 const nlOpen=new Set();
 const $=id=>document.getElementById(id);
+
+/* ---------- Browser database (second copy of the data) ---------- */
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    if(!self.indexedDB){rej(new Error("no indexedDB"));return}
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+async function idbPut(text){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readwrite");
+    t.objectStore(IDB_STORE).put(text,IDB_ITEM);
+    t.oncomplete=()=>{db.close();res(true)};
+    t.onerror=()=>{db.close();rej(t.error)};
+  });
+}
+async function idbGet(){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readonly");
+    const q=t.objectStore(IDB_STORE).get(IDB_ITEM);
+    q.onsuccess=()=>{db.close();res(q.result||null)};
+    q.onerror=()=>{db.close();rej(q.error)};
+  });
+}
+async function idbDel(){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readwrite");
+    t.objectStore(IDB_STORE).delete(IDB_ITEM);
+    t.oncomplete=()=>{db.close();res(true)};
+    t.onerror=()=>{db.close();rej(t.error)};
+  });
+}
 
 /* ---------- Storage ---------- */
 function normSim(s){
@@ -395,17 +427,27 @@ function normSim(s){
   };
 }
 
-/* Reads the saved snapshot. Falls back to the older separate keys if no snapshot exists. */
-function load(){
-  let snap=null;
-  try{snap=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){snap=null}
-  if(snap&&typeof snap==="object"){
+/* Reads both copies (local storage and browser database) and uses the newer one. */
+async function readSnap(){
+  let a=null,b=null;
+  try{a=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){a=null}
+  try{b=JSON.parse((await idbGet())||"null")}catch(e){b=null}
+  const ok=x=>x&&typeof x==="object";
+  if(ok(a)&&ok(b))return (b.t||0)>(a.t||0)?b:a;
+  if(ok(a))return a;
+  if(ok(b))return b;
+  return null;
+}
+
+/* Loads the saved data. Falls back to the older separate keys if no snapshot exists. */
+async function loadData(){
+  const snap=await readSnap();
+  if(snap){
     sims=(Array.isArray(snap.sims)?snap.sims:[]).map(normSim);
     if(Array.isArray(snap.cats))cats=snap.cats;
     if(Array.isArray(snap.log))log=snap.log;
     if(snap.brand&&typeof snap.brand==="object")brand={...brand,...snap.brand};
   }else{
-    /* Older versions stored each part under its own key */
     try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
     try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
     try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
@@ -415,21 +457,22 @@ function load(){
   loaded=true;
 }
 
-/* Saves everything in one snapshot and checks that it was written.
-   It refuses to save until the stored data has been read, and while signing out,
-   so it can never overwrite your numbers with an empty list. */
+/* Saves everything to local storage and the browser database, with a timestamp.
+   It refuses to save until the data has been read, and while signing out. */
 function saveAll(){
   if(!loaded||signingOut)return false;
   if(log.length>5000)log=log.slice(-5000);
-  const text=JSON.stringify({v:2,sims,cats,log,brand});
+  const text=JSON.stringify({v:3,t:Date.now(),sims,cats,log,brand});
+  let lsOk=true;
   try{
     localStorage.setItem(KEY_MIRROR,text);
     if(localStorage.getItem(KEY_MIRROR)!==text)throw new Error("verify failed");
-    return true;
-  }catch(e){
-    toast("⚠️ Could not save on this browser. Make a backup now.");
-    return false;
-  }
+  }catch(e){lsOk=false}
+  idbPut(text).catch(()=>{
+    if(!lsOk)toast("⚠️ Could not save on this browser. Make a backup now.");
+  });
+  if(!lsOk)toast("⚠️ Local storage is full or blocked. Your browser copy was saved.");
+  return true;
 }
 
 function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
@@ -460,12 +503,13 @@ function refreshMenu(){
   $("mLock").style.display=on?"":"none";
 }
 /* Deletes all saved numbers and settings on this device. The Firebase login is kept. */
-function clearLocalData(){
-  [KEY,KEYC,KEYL,KEYB,KEYN,KEYNOTICE,KEYTUT,KEYPW,KEY_MIRROR].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+async function clearAllData(){
+  [KEY,KEYC,KEYL,KEYB,KEYN,KEYTUT,KEYPW,KEY_MIRROR].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+  try{await idbDel()}catch(e){}
 }
-function wipeAll(){
+async function wipeAll(){
   signingOut=true;
-  clearLocalData();
+  await clearAllData();
   location.reload();
 }
 function setupPw(){
@@ -517,7 +561,7 @@ function changePwDialog(){
 function openPwMenu(){hasPw()?changePwDialog():setupPw()}
 function unlockOK(){
   $("lock").style.display="none";$("lockPw").value="";$("lockMsg").textContent="";
-  if(!started){started=true;setTab("inv");onboard()}
+  if(!started){started=true;setTab("inv");afterLogin()}
   else render();
 }
 function lockNow(){
@@ -560,10 +604,10 @@ function askLogout(){
   $("loBackup").onclick=()=>downloadBackup();
   $("loGo").onclick=doLogout;
 }
-function doLogout(){
+async function doLogout(){
   signingOut=true;
   stopScan();
-  clearLocalData();
+  await clearAllData();
   modalLock=false;
   $("modal").style.display="none";
   if(window.authSignOut)window.authSignOut();
@@ -1066,27 +1110,15 @@ function applySiteChange(){
   saveAll();render();renderBrand();
 }
 
-/* ---------- Startup flow: tutorial → name → update popup ---------- */
-function onboard(){
-  let seen=false;try{seen=localStorage.getItem(KEYTUT)==="1"}catch(e){}
-  if(seen)afterTutorial();
-  else startTutorial(afterTutorial);
-}
-function afterTutorial(){
+/* ---------- After sign-in: name prompt only (tutorial is in the menu) ---------- */
+function afterLogin(){
   if(!userName)askName(true);
-  else maybeNotice();
 }
-function startTutorial(after){
-  try{localStorage.setItem(KEYTUT,"1")}catch(e){}
-  modalLock=true;
-  $("mbox").innerHTML=`<h2>👋 Welcome!</h2>
-    <p>Want a quick tour of the app? It only takes a minute, and it won't show again on this browser.</p>
-    <div class="row" style="flex-wrap:wrap"><button id="tStart">▶ Show tutorial</button><button class="alt" id="tSkip">Skip</button></div>`;
-  $("modal").style.display="flex";
-  $("tStart").onclick=()=>{tutI=0;tutStep(after)};
-  $("tSkip").onclick=()=>{closeModal();after()};
+function startTutorial(){
+  tutI=0;
+  tutStep();
 }
-function tutStep(after){
+function tutStep(){
   const s=TUT[tutI],last=tutI===TUT.length-1;
   modalLock=true;
   $("mbox").innerHTML=`<div class="mu">Step ${tutI+1} of ${TUT.length}</div>
@@ -1094,15 +1126,15 @@ function tutStep(after){
     <h2>${s.t}</h2><p>${s.d}</p>
     <div class="row" style="margin-top:14px;flex-wrap:wrap">
       ${tutI>0?'<button class="alt" id="tBack">Back</button>':''}
-      <button class="alt" id="tSkip">Skip</button>
+      <button class="alt" id="tSkip">Close</button>
       <button id="tNext" style="margin-left:auto">${last?"Finish":"Next"}</button>
     </div>`;
   $("modal").style.display="flex";
-  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep(after)};
-  $("tSkip").onclick=()=>{closeModal();after()};
+  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep()};
+  $("tSkip").onclick=()=>closeModal();
   $("tNext").onclick=()=>{
-    if(last){closeModal();after()}
-    else{tutI++;tutStep(after)}
+    if(last)closeModal();
+    else{tutI++;tutStep()}
   };
 }
 function askName(initial){
@@ -1112,23 +1144,22 @@ function askName(initial){
   <div class="row" style="margin-top:10px"><button id="nmok">Save</button><button class="alt" id="nmskip">${initial?"Skip":"Cancel"}</button></div>`;
   $("nm").value=userName||"";
   $("modal").style.display="flex";
-  const done=v=>{saveName(v.trim());closeModal();render();if(initial)maybeNotice()};
+  const done=v=>{saveName(v.trim());closeModal();render()};
   $("nmok").onclick=()=>done($("nm").value);
-  $("nmskip").onclick=()=>{closeModal();render();if(initial)maybeNotice()};
+  $("nmskip").onclick=()=>{closeModal();render()};
   $("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("nmok").click()});
 }
-function maybeNotice(){
-  try{
-    if(localStorage.getItem(KEYNOTICE)===NOTICE.id)return;
-    if(new Date()>new Date(NOTICE.expires))return;
-  }catch(e){return}
-  modalLock=true;
-  $("mbox").innerHTML=`<h2>${NOTICE.title}</h2>`
-    +(NOTICE.image?`<img class="notice-img" src="${esc(NOTICE.image)}" alt="">`:"")
-    +`<p>${NOTICE.text}</p><ul>${NOTICE.tips.map(t=>`<li>${t}</li>`).join("")}</ul>`
-    +`<div class="row"><button id="nOk">Got it</button></div>`;
+
+/* ---------- What's new (opened from "See more" next to the version) ---------- */
+function showWhatsNew(){
+  const c=CHANGES[0];
+  modalLock=false;
+  $("mbox").innerHTML=`<h2>📢 What's new</h2>
+    <div class="mu" style="margin-bottom:8px"><b>${esc(c.v)}</b></div>
+    <ul>${c.items.map(i=>`<li>${i}</li>`).join("")}</ul>
+    <div class="row"><button id="mClose">Close</button></div>`;
   $("modal").style.display="flex";
-  $("nOk").onclick=()=>{try{localStorage.setItem(KEYNOTICE,NOTICE.id)}catch(e){}closeModal()};
+  $("mClose").onclick=closeModal;
 }
 
 /* ---------- Theme ---------- */
@@ -1235,6 +1266,8 @@ document.addEventListener("click",e=>{
   const t=e.target;
   if(!t.closest("#menu,#menuBtn"))openMenu(false);
 
+  if(t.closest("#seeMore")){openMenu(false);showWhatsNew();return}
+
   const tabBtn=t.closest("[data-tab]");
   if(tabBtn){setTab(tabBtn.dataset.tab);return}
 
@@ -1267,7 +1300,7 @@ document.addEventListener("click",e=>{
   if(menuEl){
     openMenu(false);
     const m=menuEl.dataset.m;
-    if(m==="tut"){tutI=0;tutStep(closeModal)}
+    if(m==="tut"){startTutorial()}
     else if(m==="how"){
       $("mbox").innerHTML=`<h2>📖 How to use</h2><ol>
         <li><b>Inventory:</b> paste or type one or many numbers, pick the SIM from the dropdown, set box and status, then tap Add.</li>
@@ -1369,19 +1402,22 @@ addEventListener("pagehide",()=>{if(started)saveAll()});
 
 /* ---------- Init (runs only after Firebase login) ---------- */
 let appStarted=false;
-function startApp(){
+async function startApp(){
   if(appStarted)return;
   appStarted=true;
-  load();loadName();applyBrand();
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+  await loadData();
+  loadName();applyBrand();
+  document.body.classList.remove("auth-pending");
   $("carrier").innerHTML=carrierOpts("");
-  $("verTxt").textContent=`Version ${APP_VERSION}`;
+  $("verTxt").innerHTML=`Version ${APP_VERSION} · <span id="seeMore">See more</span>`;
   refreshMenu();
   if(hasPw()){
     lockNow();
   }else{
     started=true;
     setTab("inv");
-    onboard();
+    afterLogin();
   }
 }
 </script>
@@ -1446,7 +1482,7 @@ async function doSignIn(){
 document.getElementById("agIn").onclick = doSignIn;
 gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
 
-// Used by the Sign out button in the menu (the app clears local data first)
+// Used by the Sign out button (the app clears its saved data first)
 window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
 
 onAuthStateChanged(auth, async (user) => {
@@ -1456,7 +1492,6 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   gate.style.display = "none";
-  document.body.classList.remove("auth-pending");
   try{ await recordDevice(user.uid); }catch(e){ console.error("Device log failed", e); }
   startApp();
 });

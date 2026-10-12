@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SIM OTP Manager</title>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://otp-manager-4818b.firebaseapp.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
 :root{box-sizing:border-box;--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--simc:#1a1d23;--glass:rgba(255,255,255,.55);--glassb:rgba(255,255,255,.6);color-scheme:light}
 *{box-sizing:border-box}
@@ -117,9 +121,12 @@ textarea{width:100%;min-height:84px;resize:vertical}
 
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
 
-/* ---------- Sign-in gate (animated purple design) ---------- */
-/* The whole app stays hidden until the login check finishes. */
-body.auth-pending > *:not(#authGate){display:none !important}
+/* ---------- Loading screen and sign-in gate ---------- */
+/* The whole app stays hidden until sign-in is confirmed. The loading screen is visible instead, so the page is never blank. */
+body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
+#splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a0716;color:#c4b5fd;font-size:14px}
+#splash .sp{width:40px;height:40px;border:4px solid rgba(196,181,253,.25);border-top-color:#a855f7;border-radius:50%;animation:spinx .8s linear infinite}
+@keyframes spinx{to{transform:rotate(360deg)}}
 #authGate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;padding:20px;background:#0a0716;overflow:hidden;margin:0}
 .aurora{position:absolute;inset:0;filter:blur(70px);z-index:0;pointer-events:none}
 .aurora span{position:absolute;border-radius:50%;opacity:.75;animation:drift 16s ease-in-out infinite alternate}
@@ -143,6 +150,8 @@ body.auth-pending > *:not(#authGate){display:none !important}
 </style>
 </head>
 <body class="auth-pending">
+
+<div id="splash"><div class="sp"></div><div>Loading…</div></div>
 
 <div id="authGate">
   <div class="aurora"><span></span><span></span><span></span></div>
@@ -266,10 +275,9 @@ body.auth-pending > *:not(#authGate){display:none !important}
 
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.3";
+const APP_VERSION="0.0.4";
 
 const CREATOR={
   name:"Norwell",
@@ -317,11 +325,18 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.3 (latest)",items:[
-  "<b>Numbers stay after you close the page:</b> your data is now saved in two places on the phone (local storage and the browser database). The newest copy loads when you open the app. The browser is also asked to keep the data.",
+ {v:"Version 0.0.4 (latest)",items:[
+  "<b>Faster opening:</b> the app appears as soon as sign-in is confirmed. It no longer waits for the device log to save.",
+  "<b>No more blank screen:</b> a loading screen shows while the app starts.",
+  "<b>Faster scanner start:</b> the barcode scanner loads only when you tap Scan barcode.",
+  "<b>Saved numbers load right away:</b> if the browser database is slow, the app uses the copy in local storage after a short wait.",
+  "<b>Lighter page:</b> removed a hidden outside image that loaded on every open."
+ ]},
+ {v:"Version 0.0.3",items:[
+  "<b>Numbers stay after you close the page:</b> your data is saved in two places on the phone (local storage and the browser database). The newest copy loads when you open the app.",
   "<b>Tutorial moved:</b> it no longer opens by itself. Find it in ☰ Menu → 🎓 Tutorial.",
   "<b>Name prompt after sign-in:</b> it appears only after you sign in successfully, and only if no name is saved yet.",
-  "<b>What's new:</b> the update notes are now under the version number. Tap See more to read them.",
+  "<b>What's new:</b> the update notes are under the version number. Tap See more to read them.",
   "<b>Sign out and wipe:</b> both saved copies are cleared before you are signed out, so the numbers can't come back."
  ]},
  {v:"Version 0.0.2",items:[
@@ -411,6 +426,11 @@ async function idbDel(){
   });
 }
 
+/* Stops a slow call from holding up the page */
+function withTimeout(p,ms){
+  return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);
+}
+
 /* ---------- Storage ---------- */
 function normSim(s){
   return {
@@ -427,11 +447,11 @@ function normSim(s){
   };
 }
 
-/* Reads both copies (local storage and browser database) and uses the newer one. */
+/* Reads both copies and uses the newer one. The browser database read is limited to 800 ms. */
 async function readSnap(){
   let a=null,b=null;
   try{a=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){a=null}
-  try{b=JSON.parse((await idbGet())||"null")}catch(e){b=null}
+  try{b=JSON.parse((await withTimeout(idbGet().catch(()=>null),800))||"null")}catch(e){b=null}
   const ok=x=>x&&typeof x==="object";
   if(ok(a)&&ok(b))return (b.t||0)>(a.t||0)?b:a;
   if(ok(a))return a;
@@ -1238,12 +1258,27 @@ function parseSpoken(t){
   }).join("");
 }
 
-/* ---------- Scanner ---------- */
-let scanCtrl=null,scanReader=null;
+/* ---------- Scanner (library loads only when the scanner is opened) ---------- */
+let scanCtrl=null,scanReader=null,zxingPromise=null;
+function loadScanner(){
+  if(window.ZXing)return Promise.resolve();
+  if(!zxingPromise){
+    zxingPromise=new Promise((res,rej)=>{
+      const s=document.createElement("script");
+      s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+      s.onload=res;
+      s.onerror=()=>{zxingPromise=null;rej(new Error("scanner failed to load"))};
+      document.head.appendChild(s);
+    });
+  }
+  return zxingPromise;
+}
 async function startScan(){
   $("scan").style.display="block";
-  $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
+  $("scanMsg").textContent="Loading camera…";
   try{
+    await loadScanner();
+    $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
     scanReader=new ZXing.BrowserMultiFormatReader();
     scanCtrl=await scanReader.decodeFromConstraints({video:{facingMode:"environment"}},$("vid"),res=>{
       if(!res)return;
@@ -1400,7 +1435,7 @@ let rzT=null;
 addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");if(tab==="num")renderSheet()},150)});
 addEventListener("pagehide",()=>{if(started)saveAll()});
 
-/* ---------- Init (runs only after Firebase login) ---------- */
+/* ---------- Start (runs after Firebase confirms sign-in) ---------- */
 let appStarted=false;
 async function startApp(){
   if(appStarted)return;
@@ -1408,10 +1443,11 @@ async function startApp(){
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
   await loadData();
   loadName();applyBrand();
-  document.body.classList.remove("auth-pending");
   $("carrier").innerHTML=carrierOpts("");
   $("verTxt").innerHTML=`Version ${APP_VERSION} · <span id="seeMore">See more</span>`;
   refreshMenu();
+  document.body.classList.remove("auth-pending");
+  $("splash").style.display="none";
   if(hasPw()){
     lockNow();
   }else{
@@ -1441,6 +1477,7 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 
 const gate = document.getElementById("authGate");
+const splash = document.getElementById("splash");
 const gMsg = document.getElementById("agMsg");
 const gEmail = document.getElementById("agEmail");
 const gPass = document.getElementById("agPass");
@@ -1451,6 +1488,7 @@ function deviceId(){
   return id;
 }
 
+/* Runs in the background. The app never waits for this. */
 async function recordDevice(uid){
   const id = deviceId();
   const ref = doc(db, "users", uid, "devices", id);
@@ -1485,18 +1523,18 @@ gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
 // Used by the Sign out button (the app clears its saved data first)
 window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
 
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
   if(!user){
+    splash.style.display = "none";
     document.body.classList.add("auth-pending");
     gate.style.display = "flex";
     return;
   }
   gate.style.display = "none";
-  try{ await recordDevice(user.uid); }catch(e){ console.error("Device log failed", e); }
+  recordDevice(user.uid).catch(e => console.error("Device log failed", e));
   startApp();
 });
 </script>
-<img src="https://urlto.me/26Kqs" width="1" height="1" style="display:none;" alt="" />
 
 </body>
 </html>

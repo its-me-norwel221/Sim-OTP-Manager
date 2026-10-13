@@ -4,10 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SIM OTP Manager</title>
-<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://otp-manager-4818b.firebaseapp.com" crossorigin>
-<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
 :root{box-sizing:border-box;--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--simc:#1a1d23;--glass:rgba(255,255,255,.55);--glassb:rgba(255,255,255,.6);color-scheme:light}
 *{box-sizing:border-box}
@@ -16,6 +12,7 @@ body{margin:0 auto;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,
 body.wide{max-width:none}
 h1{font-size:18px;margin:0}
 button,.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
 button.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
 button.del{background:none;color:var(--bad);padding:4px 8px}
 input[type=text],input[type=number],input[type=search],select,textarea{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;min-width:0}
@@ -96,7 +93,6 @@ textarea{width:100%;min-height:84px;resize:vertical}
 .menu .mi{padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:500}
 .menu .mi:hover,.menu .mi:active{background:rgba(127,127,127,.16)}
 .menu .ver{font-size:11px;color:var(--mu);padding:8px 12px 6px;border-top:1px solid var(--ln);margin-top:4px}
-#seeMore{color:var(--ac);cursor:pointer;font-weight:700;margin-left:4px}
 
 /* Modal */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:90}
@@ -120,53 +116,9 @@ textarea{width:100%;min-height:84px;resize:vertical}
 .errmsg{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
 
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
-
-/* ---------- Loading screen and sign-in gate ---------- */
-/* The whole app stays hidden until sign-in is confirmed. The loading screen is visible instead, so the page is never blank. */
-body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
-#splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a0716;color:#c4b5fd;font-size:14px}
-#splash .sp{width:40px;height:40px;border:4px solid rgba(196,181,253,.25);border-top-color:#a855f7;border-radius:50%;animation:spinx .8s linear infinite}
-@keyframes spinx{to{transform:rotate(360deg)}}
-#authGate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;padding:20px;background:#0a0716;overflow:hidden;margin:0}
-.aurora{position:absolute;inset:0;filter:blur(70px);z-index:0;pointer-events:none}
-.aurora span{position:absolute;border-radius:50%;opacity:.75;animation:drift 16s ease-in-out infinite alternate}
-.aurora span:nth-child(1){width:70vmax;height:70vmax;background:#7c3aed;top:-25%;left:-20%}
-.aurora span:nth-child(2){width:60vmax;height:60vmax;background:#c026d3;bottom:-25%;right:-20%;animation-duration:20s;animation-delay:-4s}
-.aurora span:nth-child(3){width:50vmax;height:50vmax;background:#4f46e5;top:25%;left:25%;animation-duration:24s;animation-delay:-8s}
-@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(10vw,8vh) scale(1.2)}}
-.ag-wrap{position:relative;z-index:1;width:100%;max-width:370px;border-radius:20px;padding:2px;overflow:hidden;box-shadow:0 20px 60px rgba(124,58,237,.35)}
-.ag-wrap::before{content:"";position:absolute;left:50%;top:50%;width:200%;aspect-ratio:1;transform:translate(-50%,-50%);background:conic-gradient(from 0deg,#a855f7,#6366f1,#ec4899,#38bdf8,#a855f7);animation:spin 5s linear infinite}
-@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
-.ag-card{position:relative;background:rgba(14,10,28,.92);border-radius:18px;padding:24px;color:#f5f3ff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-.ag-title{font-size:20px;font-weight:700;background:linear-gradient(90deg,#c4b5fd,#f0abfc,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
-.ag-sub{color:#a5a0bf;font-size:14px;margin:4px 0 16px}
-#authGate input{width:100%;margin:0 0 10px;padding:12px;border-radius:10px;border:1px solid rgba(196,181,253,.25);background:rgba(255,255,255,.06);color:#f5f3ff;font:inherit;outline:none}
-#authGate input::placeholder{color:#8b85a8}
-#authGate input:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.25)}
-.ag-btn{width:100%;padding:12px;border:0;border-radius:10px;color:#fff;font:inherit;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#c026d3,#4f46e5);background-size:200% 200%;animation:shine 6s ease infinite}
-@keyframes shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.ag-err{color:#fca5a5;font-size:13px;min-height:18px;margin-top:10px}
-.ag-note{color:#8b85a8;font-size:12px;margin-top:8px}
 </style>
 </head>
-<body class="auth-pending">
-
-<div id="splash"><div class="sp"></div><div>Loading…</div></div>
-
-<div id="authGate">
-  <div class="aurora"><span></span><span></span><span></span></div>
-  <div class="ag-wrap">
-    <div class="ag-card">
-      <div class="ag-title">📶 SIM OTP Manager</div>
-      <div class="ag-sub">Sign in to continue</div>
-      <input id="agEmail" type="email" placeholder="Email" autocomplete="username">
-      <input id="agPass" type="password" placeholder="Password" autocomplete="current-password">
-      <button id="agIn" class="ag-btn">Sign in</button>
-      <div id="agMsg" class="ag-err"></div>
-      <div class="ag-note">No account? Ask the administrator to create one for you.</div>
-    </div>
-  </div>
-</div>
+<body>
 
 <div class="top">
   <h1>📶 SIM OTP Manager</h1>
@@ -186,9 +138,9 @@ body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
   <div class="mi" data-m="lock" id="mLock" style="display:none">🔒 Lock now</div>
   <div class="mi" data-m="save">💾 Save backup (.txt)</div>
   <div class="mi" data-m="restore">📂 Restore backup</div>
+  <div class="mi" data-m="cloud">☁️ Cloud backup and restore</div>
   <div class="mi" data-m="log">📝 Changelog</div>
   <div class="mi" data-m="who">👤 Who made?</div>
-  <div class="mi" data-m="logout">🚪 Sign out</div>
   <div class="ver" id="verTxt"></div>
 </div>
 <input type="file" id="up" accept=".txt,text/plain" hidden>
@@ -275,13 +227,32 @@ body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
 
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.4";
+const APP_VERSION="0.0.1";
 
 const CREATOR={
   name:"Norwell",
   img:"https://i.ibb.co/bRHJQNDL/1791722795270-3.jpg"
+};
+
+/* Cloud backup (Supabase). The anon key is public by design; row level security protects each user's data. */
+const SB_URL="https://evgifetxqthbrezibqgc.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2Z2lmZXR4cXRoYnJlemlicWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NjY4NDcsImV4cCI6MjEwNzQ0Mjg0N30.nPuUxojbC_UFszmgyA8wyyKWYs_OiYDm9IqabTkJNNM";
+
+const NOTICE={
+  id:"notice_password_oct12",
+  image:"",
+  title:"📢 New update!",
+  text:"Here's what's new and how to get the most out of the app:",
+  tips:[
+    "🔒 <b>Password:</b> go to ☰ Menu → Set password to lock the app. You'll enter it every time you open the app.",
+    "⚠️ <b>Forgot password:</b> if you forget it, all data in the app is deleted. Keep your password somewhere safe.",
+    "📷 <b>Scan:</b> point the camera at the barcode on the SIM card only. Don't scan the ICC number.",
+    "💾 <b>Backup:</b> your saved theme and SIM colors are included in the backup."
+  ],
+  expires:"2026-10-17T23:59:59"
 };
 
 const TUT=[
@@ -292,7 +263,7 @@ const TUT=[
   {icon:"🔢",t:"Number List",d:"All your numbers in one place. Site boxes are hidden to keep it fast. Tap Show all site boxes, or open a single number's ▼ Show sites. Phones show cards, laptops and PCs show the full table that fits the screen."},
   {icon:"📊",t:"Analytics",d:"Today's sales, earnings, fastest-selling sites, the last 7 days, and how many SIMs use each network."},
   {icon:"🎨",t:"Brand",d:"Change the color style, the number color for each SIM network, and edit the site list for all SIMs or only the ones you check."},
-  {icon:"☰",t:"Menu",d:"Set a password to lock the app (you'll need it every visit). Save and Restore backups, change your name, dark mode, and the changelog are here too."}
+  {icon:"☰",t:"Menu",d:"Set a password to lock the app (you'll need it every visit). Save and Restore backups, cloud backup, change your name, dark mode, and the changelog are here too."}
 ];
 
 /* ---------- Static data ---------- */
@@ -325,29 +296,9 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.4 (latest)",items:[
-  "<b>Faster opening:</b> the app appears as soon as sign-in is confirmed. It no longer waits for the device log to save.",
-  "<b>No more blank screen:</b> a loading screen shows while the app starts.",
-  "<b>Faster scanner start:</b> the barcode scanner loads only when you tap Scan barcode.",
-  "<b>Saved numbers load right away:</b> if the browser database is slow, the app uses the copy in local storage after a short wait.",
-  "<b>Lighter page:</b> removed a hidden outside image that loaded on every open."
- ]},
- {v:"Version 0.0.3",items:[
-  "<b>Numbers stay after you close the page:</b> your data is saved in two places on the phone (local storage and the browser database). The newest copy loads when you open the app.",
-  "<b>Tutorial moved:</b> it no longer opens by itself. Find it in ☰ Menu → 🎓 Tutorial.",
-  "<b>Name prompt after sign-in:</b> it appears only after you sign in successfully, and only if no name is saved yet.",
-  "<b>What's new:</b> the update notes are under the version number. Tap See more to read them.",
-  "<b>Sign out and wipe:</b> both saved copies are cleared before you are signed out, so the numbers can't come back."
- ]},
- {v:"Version 0.0.2",items:[
-  "<b>No sign-in flash:</b> the sign-in screen stays hidden until Firebase confirms you are signed out.",
-  "<b>Restore fix:</b> restored numbers are saved right away. A warning shows if saving fails.",
-  "<b>Safer saving:</b> nothing is saved until the stored data has been loaded, so an empty list can't overwrite your numbers.",
-  "<b>Sign out warning:</b> shows that all saved numbers will be deleted, with a Back up now button and a Sign out &amp; delete button.",
-  "<b>Sign-in design:</b> animated purple background with a glowing card.",
-  "<b>Name fix:</b> clearing your name no longer saves the word \"null\"."
- ]},
- {v:"Version 0.0.1",items:[
+ {v:"Version 0.0.1 (latest)",items:[
+  "<b>Restore after reset:</b> if you forget your password and reset the app, you're asked to sign in with your cloud email and password to restore your backup. You can also start fresh.",
+  "<b>Cloud backup and restore:</b> sign in with your cloud email and password to back up your list and theme, or restore it on any device. Backups are encrypted on your device before upload.",
   "<b>Faster Number List:</b> site boxes are hidden by default. Tap 👁 Show all site boxes, or ▼ Show sites on one number.",
   "<b>Lookup text:</b> updated wording for the search hint.",
   "<b>Password fields:</b> Google's password suggestion no longer pops up and hides the keyboard. Passwords are still hidden as dots.",
@@ -356,7 +307,7 @@ const CHANGES=[
   "<b>Forgot password:</b> resets the app and deletes all saved data. Remember your password.",
   "<b>Scan tip:</b> scan only the barcode on the SIM card, not the ICC number.",
   "<b>Voice input guide:</b> the tutorial explains how voice works.",
-  "<b>Tutorial:</b> a short 8-step tour. Replay it from the menu.",
+  "<b>Tutorial:</b> a short 8-step tour on first open. Replay it from the menu.",
   "<b>Backup keeps your theme:</b> color style, light/dark mode, and SIM number colors are saved and restored."
  ]},
  {v:"Earlier",items:[
@@ -377,59 +328,12 @@ const CHANGES=[
 ];
 
 /* ---------- State ---------- */
-const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1";
-const KEY_MIRROR="sim_otp_snapshot_v3";
-const IDB_NAME="sim_otp_db",IDB_STORE="kv",IDB_ITEM="snapshot";
+const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYNOTICE="sim_otp_notice_seen",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1",KEYCE="sim_otp_cloud_email",KEYRESTORE="sim_otp_restore_prompt";
 let sims=[],cats=JSON.parse(JSON.stringify(DEFAULT_CATS)),log=[],brand={palette:"default",mode:"system",simColors:{}};
 let openId=null,userName=null,tab="inv",isDark=false,brandCar=CARRIERS[0],modalLock=false,tutI=0,started=false;
-let loaded=false;      // true only after the saved data has been read
-let signingOut=false;  // true while signing out or wiping, so nothing gets saved back
 let nlShow=false;
 const nlOpen=new Set();
 const $=id=>document.getElementById(id);
-
-/* ---------- Browser database (second copy of the data) ---------- */
-function idbOpen(){
-  return new Promise((res,rej)=>{
-    if(!self.indexedDB){rej(new Error("no indexedDB"));return}
-    const r=indexedDB.open(IDB_NAME,1);
-    r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);
-    r.onsuccess=()=>res(r.result);
-    r.onerror=()=>rej(r.error);
-  });
-}
-async function idbPut(text){
-  const db=await idbOpen();
-  return new Promise((res,rej)=>{
-    const t=db.transaction(IDB_STORE,"readwrite");
-    t.objectStore(IDB_STORE).put(text,IDB_ITEM);
-    t.oncomplete=()=>{db.close();res(true)};
-    t.onerror=()=>{db.close();rej(t.error)};
-  });
-}
-async function idbGet(){
-  const db=await idbOpen();
-  return new Promise((res,rej)=>{
-    const t=db.transaction(IDB_STORE,"readonly");
-    const q=t.objectStore(IDB_STORE).get(IDB_ITEM);
-    q.onsuccess=()=>{db.close();res(q.result||null)};
-    q.onerror=()=>{db.close();rej(q.error)};
-  });
-}
-async function idbDel(){
-  const db=await idbOpen();
-  return new Promise((res,rej)=>{
-    const t=db.transaction(IDB_STORE,"readwrite");
-    t.objectStore(IDB_STORE).delete(IDB_ITEM);
-    t.oncomplete=()=>{db.close();res(true)};
-    t.onerror=()=>{db.close();rej(t.error)};
-  });
-}
-
-/* Stops a slow call from holding up the page */
-function withTimeout(p,ms){
-  return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);
-}
 
 /* ---------- Storage ---------- */
 function normSim(s){
@@ -446,62 +350,26 @@ function normSim(s){
     extra:Array.isArray(s.extra)?s.extra:[]
   };
 }
-
-/* Reads both copies and uses the newer one. The browser database read is limited to 800 ms. */
-async function readSnap(){
-  let a=null,b=null;
-  try{a=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){a=null}
-  try{b=JSON.parse((await withTimeout(idbGet().catch(()=>null),800))||"null")}catch(e){b=null}
-  const ok=x=>x&&typeof x==="object";
-  if(ok(a)&&ok(b))return (b.t||0)>(a.t||0)?b:a;
-  if(ok(a))return a;
-  if(ok(b))return b;
-  return null;
-}
-
-/* Loads the saved data. Falls back to the older separate keys if no snapshot exists. */
-async function loadData(){
-  const snap=await readSnap();
-  if(snap){
-    sims=(Array.isArray(snap.sims)?snap.sims:[]).map(normSim);
-    if(Array.isArray(snap.cats))cats=snap.cats;
-    if(Array.isArray(snap.log))log=snap.log;
-    if(snap.brand&&typeof snap.brand==="object")brand={...brand,...snap.brand};
-  }else{
-    try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
-    try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
-    try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
-    try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
-  }
+function load(){
+  try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
+  try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
+  try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
+  try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
   if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
-  loaded=true;
 }
-
-/* Saves everything to local storage and the browser database, with a timestamp.
-   It refuses to save until the data has been read, and while signing out. */
 function saveAll(){
-  if(!loaded||signingOut)return false;
   if(log.length>5000)log=log.slice(-5000);
-  const text=JSON.stringify({v:3,t:Date.now(),sims,cats,log,brand});
-  let lsOk=true;
   try{
-    localStorage.setItem(KEY_MIRROR,text);
-    if(localStorage.getItem(KEY_MIRROR)!==text)throw new Error("verify failed");
-  }catch(e){lsOk=false}
-  idbPut(text).catch(()=>{
-    if(!lsOk)toast("⚠️ Could not save on this browser. Make a backup now.");
-  });
-  if(!lsOk)toast("⚠️ Local storage is full or blocked. Your browser copy was saved.");
-  return true;
+    localStorage.setItem(KEY,JSON.stringify(sims));
+    localStorage.setItem(KEYC,JSON.stringify(cats));
+    localStorage.setItem(KEYL,JSON.stringify(log));
+    localStorage.setItem(KEYB,JSON.stringify(brand));
+  }catch(e){}
 }
-
 function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
-function saveName(n){
-  userName=n||null;
-  try{if(n)localStorage.setItem(KEYN,n);else localStorage.removeItem(KEYN)}catch(e){}
-}
+function saveName(n){userName=n||null;try{localStorage.setItem(KEYN,n)}catch(e){}}
 
-/* ---------- Password ---------- */
+/* ---------- Password (app lock) ---------- */
 function pwInput(id,placeholder){
   return `<input type="text" id="${id}" class="pwf" placeholder="${placeholder}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" style="width:100%;margin-bottom:8px">`;
 }
@@ -522,14 +390,10 @@ function refreshMenu(){
   $("mPw").textContent=on?"🔑 Change or remove password":"🔒 Set password";
   $("mLock").style.display=on?"":"none";
 }
-/* Deletes all saved numbers and settings on this device. The Firebase login is kept. */
-async function clearAllData(){
-  [KEY,KEYC,KEYL,KEYB,KEYN,KEYTUT,KEYPW,KEY_MIRROR].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
-  try{await idbDel()}catch(e){}
-}
-async function wipeAll(){
-  signingOut=true;
-  await clearAllData();
+function wipeAll(){
+  /* Keep the saved cloud email and ask for the cloud sign-in on the next launch, so the cloud backup can be restored. */
+  [KEY,KEYC,KEYL,KEYB,KEYN,KEYNOTICE,KEYTUT,KEYPW].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+  try{localStorage.setItem(KEYRESTORE,"1")}catch(e){}
   location.reload();
 }
 function setupPw(){
@@ -581,7 +445,7 @@ function changePwDialog(){
 function openPwMenu(){hasPw()?changePwDialog():setupPw()}
 function unlockOK(){
   $("lock").style.display="none";$("lockPw").value="";$("lockMsg").textContent="";
-  if(!started){started=true;setTab("inv");afterLogin()}
+  if(!started){started=true;setTab("inv");onboard()}
   else render();
 }
 function lockNow(){
@@ -598,7 +462,7 @@ function forgotPw(){
   modalLock=true;
   $("mbox").innerHTML=`<h2>⚠️ Forgot password?</h2>
   <p>If you forgot your password, <b>all SIMs, sites, analytics, and settings in this app will be permanently deleted.</b></p>
-  <p>This can't be undone. Your backup files (.txt) on your device are not affected.</p>
+  <p>This can't be undone. Your backup files (.txt) on your device are not affected. If you made a cloud backup, you can sign in and restore it after the reset.</p>
   <div class="row" style="flex-wrap:wrap">
     <button class="del" id="fDel" style="border:1px solid var(--bad);border-radius:8px">Delete everything</button>
     <button class="alt" id="fCancel" style="margin-left:auto">Cancel</button>
@@ -606,32 +470,6 @@ function forgotPw(){
   $("modal").style.display="flex";
   $("fCancel").onclick=closeModal;
   $("fDel").onclick=wipeAll;
-}
-
-/* ---------- Sign out (with backup warning) ---------- */
-function askLogout(){
-  modalLock=true;
-  $("mbox").innerHTML=`<h2>🚪 Sign out?</h2>
-  <p><b>All saved numbers in this app will be deleted once you sign out.</b></p>
-  <p>Make sure you back up before signing out. Your backup file is the only way to bring the numbers back.</p>
-  <div class="row" style="flex-wrap:wrap">
-    <button id="loBackup">💾 Back up now</button>
-    <button class="del" id="loGo" style="border:1px solid var(--bad);border-radius:8px">Sign out &amp; delete</button>
-    <button class="alt" id="loCancel" style="margin-left:auto">Cancel</button>
-  </div>`;
-  $("modal").style.display="flex";
-  $("loCancel").onclick=closeModal;
-  $("loBackup").onclick=()=>downloadBackup();
-  $("loGo").onclick=doLogout;
-}
-async function doLogout(){
-  signingOut=true;
-  stopScan();
-  await clearAllData();
-  modalLock=false;
-  $("modal").style.display="none";
-  if(window.authSignOut)window.authSignOut();
-  else location.reload();
 }
 
 /* ---------- Helpers ---------- */
@@ -1130,15 +968,27 @@ function applySiteChange(){
   saveAll();render();renderBrand();
 }
 
-/* ---------- After sign-in: name prompt only (tutorial is in the menu) ---------- */
-function afterLogin(){
+/* ---------- Startup flow: restore prompt (after reset) → tutorial → name → update popup ---------- */
+function onboard(){
+  let seen=false;try{seen=localStorage.getItem(KEYTUT)==="1"}catch(e){}
+  if(seen)afterTutorial();
+  else startTutorial(afterTutorial);
+}
+function afterTutorial(){
   if(!userName)askName(true);
+  else maybeNotice();
 }
-function startTutorial(){
-  tutI=0;
-  tutStep();
+function startTutorial(after){
+  try{localStorage.setItem(KEYTUT,"1")}catch(e){}
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>👋 Welcome!</h2>
+    <p>Want a quick tour of the app? It only takes a minute, and it won't show again on this browser.</p>
+    <div class="row" style="flex-wrap:wrap"><button id="tStart">▶ Show tutorial</button><button class="alt" id="tSkip">Skip</button></div>`;
+  $("modal").style.display="flex";
+  $("tStart").onclick=()=>{tutI=0;tutStep(after)};
+  $("tSkip").onclick=()=>{closeModal();after()};
 }
-function tutStep(){
+function tutStep(after){
   const s=TUT[tutI],last=tutI===TUT.length-1;
   modalLock=true;
   $("mbox").innerHTML=`<div class="mu">Step ${tutI+1} of ${TUT.length}</div>
@@ -1146,15 +996,15 @@ function tutStep(){
     <h2>${s.t}</h2><p>${s.d}</p>
     <div class="row" style="margin-top:14px;flex-wrap:wrap">
       ${tutI>0?'<button class="alt" id="tBack">Back</button>':''}
-      <button class="alt" id="tSkip">Close</button>
+      <button class="alt" id="tSkip">Skip</button>
       <button id="tNext" style="margin-left:auto">${last?"Finish":"Next"}</button>
     </div>`;
   $("modal").style.display="flex";
-  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep()};
-  $("tSkip").onclick=()=>closeModal();
+  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep(after)};
+  $("tSkip").onclick=()=>{closeModal();after()};
   $("tNext").onclick=()=>{
-    if(last)closeModal();
-    else{tutI++;tutStep()}
+    if(last){closeModal();after()}
+    else{tutI++;tutStep(after)}
   };
 }
 function askName(initial){
@@ -1164,22 +1014,23 @@ function askName(initial){
   <div class="row" style="margin-top:10px"><button id="nmok">Save</button><button class="alt" id="nmskip">${initial?"Skip":"Cancel"}</button></div>`;
   $("nm").value=userName||"";
   $("modal").style.display="flex";
-  const done=v=>{saveName(v.trim());closeModal();render()};
+  const done=v=>{saveName(v.trim());closeModal();render();if(initial)maybeNotice()};
   $("nmok").onclick=()=>done($("nm").value);
-  $("nmskip").onclick=()=>{closeModal();render()};
+  $("nmskip").onclick=()=>{closeModal();render();if(initial)maybeNotice()};
   $("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("nmok").click()});
 }
-
-/* ---------- What's new (opened from "See more" next to the version) ---------- */
-function showWhatsNew(){
-  const c=CHANGES[0];
-  modalLock=false;
-  $("mbox").innerHTML=`<h2>📢 What's new</h2>
-    <div class="mu" style="margin-bottom:8px"><b>${esc(c.v)}</b></div>
-    <ul>${c.items.map(i=>`<li>${i}</li>`).join("")}</ul>
-    <div class="row"><button id="mClose">Close</button></div>`;
+function maybeNotice(){
+  try{
+    if(localStorage.getItem(KEYNOTICE)===NOTICE.id)return;
+    if(new Date()>new Date(NOTICE.expires))return;
+  }catch(e){return}
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>${NOTICE.title}</h2>`
+    +(NOTICE.image?`<img class="notice-img" src="${esc(NOTICE.image)}" alt="">`:"")
+    +`<p>${NOTICE.text}</p><ul>${NOTICE.tips.map(t=>`<li>${t}</li>`).join("")}</ul>`
+    +`<div class="row"><button id="nOk">Got it</button></div>`;
   $("modal").style.display="flex";
-  $("mClose").onclick=closeModal;
+  $("nOk").onclick=()=>{try{localStorage.setItem(KEYNOTICE,NOTICE.id)}catch(e){}closeModal()};
 }
 
 /* ---------- Theme ---------- */
@@ -1212,10 +1063,28 @@ function showWho(){
   $("modal").style.display="flex";$("mClose").onclick=closeModal;
 }
 
-/* ---------- Backup / restore ---------- */
+/* ---------- Backup / restore (file) ---------- */
+function buildBackupObj(){
+  return {app:"sim_otp_manager",version:APP_VERSION,exported:new Date().toISOString(),sims,cats,log,brand,
+    theme:{palette:brand.palette,mode:brand.mode,simColors:brand.simColors}};
+}
+function applyBackupObj(obj){
+  const list=Array.isArray(obj)?obj:obj.sims;
+  if(!Array.isArray(list))throw new Error("bad");
+  const clean=list.filter(s=>s&&normNum(s.number)).map(s=>normSim({...s,number:normNum(s.number)}));
+  sims=clean;
+  if(obj.cats&&Array.isArray(obj.cats))cats=obj.cats;
+  if(obj.log&&Array.isArray(obj.log))log=obj.log;
+  if(obj.brand&&typeof obj.brand==="object")brand={...brand,...obj.brand};
+  if(obj.theme&&typeof obj.theme==="object"){
+    brand={...brand,palette:obj.theme.palette||brand.palette,mode:obj.theme.mode||brand.mode,simColors:obj.theme.simColors||brand.simColors};
+  }
+  if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+  saveAll();applyBrand();render();
+  return clean.length;
+}
 function downloadBackup(){
-  const theme={palette:brand.palette,mode:brand.mode,simColors:brand.simColors};
-  const data=JSON.stringify({app:"sim_otp_manager",version:APP_VERSION,exported:new Date().toISOString(),sims,cats,log,brand,theme},null,2);
+  const data=JSON.stringify(buildBackupObj(),null,2);
   const blob=new Blob([data],{type:"text/plain"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -1231,23 +1100,155 @@ function restoreFile(file,inputEl){
       const obj=JSON.parse(r.result);
       const list=Array.isArray(obj)?obj:obj.sims;
       if(!Array.isArray(list))throw new Error("bad");
-      const clean=list.filter(s=>s&&normNum(s.number)).map(s=>normSim({...s,number:normNum(s.number)}));
-      if(!confirm(`Restore ${clean.length} SIM(s)? This replaces the current list.`)){inputEl.value="";return}
-      sims=clean;
-      if(obj.cats&&Array.isArray(obj.cats))cats=obj.cats;
-      if(obj.log&&Array.isArray(obj.log))log=obj.log;
-      if(obj.brand&&typeof obj.brand==="object")brand={...brand,...obj.brand};
-      if(obj.theme&&typeof obj.theme==="object"){
-        brand={...brand,palette:obj.theme.palette||brand.palette,mode:obj.theme.mode||brand.mode,simColors:obj.theme.simColors||brand.simColors};
-      }
-      if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
-      const ok=saveAll();
-      applyBrand();render();
-      if(ok)toast("Restored "+clean.length+" SIM(s) and theme");
+      if(!confirm(`Restore ${list.length} SIM(s)? This replaces the current list.`)){inputEl.value="";return}
+      const n=applyBackupObj(obj);
+      toast("Restored "+n+" SIM(s) and theme");
     }catch(err){toast("Invalid backup file")}
     inputEl.value="";
   };
   r.readAsText(file);
+}
+
+/* ---------- Cloud backup (Supabase, encrypted on device) ---------- */
+function b64(buf){
+  const u=new Uint8Array(buf);let s="";
+  for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+  return btoa(s);
+}
+function unb64(s){
+  const bin=atob(s),u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  return u;
+}
+async function deriveKey(pw,salt){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptText(pw,text){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pw,salt);
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(text));
+  return JSON.stringify({v:1,s:b64(salt),i:b64(iv),d:b64(ct)});
+}
+async function decryptText(pw,payload){
+  const p=JSON.parse(payload);
+  const key=await deriveKey(pw,unb64(p.s));
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(p.i)},key,unb64(p.d));
+  return new TextDecoder().decode(pt);
+}
+async function sbSignIn(email,pw){
+  const r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{
+    method:"POST",
+    headers:{apikey:SB_ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({email,password:pw})
+  });
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.access_token)throw new Error("Email or password is wrong.");
+  return {token:j.access_token,uid:j.user.id};
+}
+function sbHeaders(token){
+  return {apikey:SB_ANON,Authorization:"Bearer "+token,"Content-Type":"application/json"};
+}
+async function cloudUpload(email,pw){
+  const s=await sbSignIn(email,pw);
+  const payload=await encryptText(pw,JSON.stringify(buildBackupObj()));
+  const r=await fetch(SB_URL+"/rest/v1/backups",{
+    method:"POST",
+    headers:{...sbHeaders(s.token),Prefer:"resolution=merge-duplicates"},
+    body:JSON.stringify({user_id:s.uid,payload,updated_at:new Date().toISOString()})
+  });
+  if(!r.ok)throw new Error("Upload failed. Try again.");
+  return "Cloud backup saved.";
+}
+async function cloudDownload(email,pw){
+  const s=await sbSignIn(email,pw);
+  const r=await fetch(SB_URL+"/rest/v1/backups?select=payload&user_id=eq."+encodeURIComponent(s.uid),{headers:sbHeaders(s.token)});
+  if(!r.ok)throw new Error("Could not reach the cloud. Try again.");
+  const rows=await r.json();
+  if(!rows.length)throw new Error("No cloud backup found yet. Make a backup first.");
+  let obj;
+  try{obj=JSON.parse(await decryptText(pw,rows[0].payload))}
+  catch(e){throw new Error("Could not open this backup with that password.")}
+  return obj;
+}
+function cloudDialog(){
+  modalLock=true;
+  let savedEmail="";try{savedEmail=localStorage.getItem(KEYCE)||""}catch(e){}
+  $("mbox").innerHTML=`<h2>☁️ Cloud backup</h2>
+  <p class="mu">Sign in with the email and password you were given. Your backup is encrypted with this password before it leaves your device, so keep it safe.</p>
+  <input type="text" id="cEmail" placeholder="Email" value="${esc(savedEmail)}" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;margin-bottom:8px">
+  ${pwInput("cPw","Password")}
+  <div class="errmsg" id="cMsg"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="cUp">Backup now</button>
+    <button class="alt" id="cDown">Restore from cloud</button>
+    <button class="alt" id="cX" style="margin-left:auto">Close</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("cX").onclick=closeModal;
+  const run=async kind=>{
+    const email=$("cEmail").value.trim(),pw=$("cPw").value;
+    if(!email||!pw){$("cMsg").textContent="Enter your email and password.";return}
+    const btns=["cUp","cDown","cX"].map(id=>$(id));
+    btns.forEach(b=>b.disabled=true);
+    $("cMsg").textContent="Working…";
+    try{
+      try{localStorage.setItem(KEYCE,email)}catch(e){}
+      if(kind==="up"){
+        const msg=await cloudUpload(email,pw);
+        $("cMsg").textContent="";closeModal();toast(msg);
+      }else{
+        const obj=await cloudDownload(email,pw);
+        if(!confirm(`Restore ${(obj.sims||[]).length} SIM(s) from the cloud? This replaces the current list.`)){
+          $("cMsg").textContent="";btns.forEach(b=>b.disabled=false);return;
+        }
+        const n=applyBackupObj(obj);
+        try{localStorage.removeItem(KEYRESTORE)}catch(e){}
+        closeModal();toast("Restored "+n+" SIM(s) from the cloud");
+      }
+    }catch(e){
+      const offline=e instanceof TypeError;
+      $("cMsg").textContent=offline?"No internet connection. Connect and try again.":e.message;
+      btns.forEach(b=>b.disabled=false);
+    }
+  };
+  $("cUp").onclick=()=>run("up");
+  $("cDown").onclick=()=>run("down");
+}
+/* Shown after a password reset: sign in to restore the cloud backup, or start fresh. */
+function cloudRestorePrompt(after){
+  modalLock=true;
+  let savedEmail="";try{savedEmail=localStorage.getItem(KEYCE)||""}catch(e){}
+  $("mbox").innerHTML=`<h2>☁️ Restore your data</h2>
+  <p class="mu">The app was reset. If you have a cloud backup, sign in with your cloud email and password to restore it.</p>
+  <input type="text" id="rEmail" placeholder="Email" value="${esc(savedEmail)}" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;margin-bottom:8px">
+  ${pwInput("rPw","Password")}
+  <div class="errmsg" id="rMsg"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="rGo">Sign in and restore</button>
+    <button class="alt" id="rSkip" style="margin-left:auto">Start fresh</button>
+  </div>`;
+  $("modal").style.display="flex";
+  const finish=()=>{try{localStorage.removeItem(KEYRESTORE)}catch(e){}closeModal();after()};
+  $("rSkip").onclick=finish;
+  $("rGo").onclick=async()=>{
+    const email=$("rEmail").value.trim(),pw=$("rPw").value;
+    if(!email||!pw){$("rMsg").textContent="Enter your email and password.";return}
+    $("rGo").disabled=true;$("rSkip").disabled=true;
+    $("rMsg").textContent="Working…";
+    try{
+      const obj=await cloudDownload(email,pw);
+      try{localStorage.setItem(KEYCE,email)}catch(e){}
+      const n=applyBackupObj(obj);
+      toast("Restored "+n+" SIM(s) from the cloud");
+      finish();
+    }catch(e){
+      const offline=e instanceof TypeError;
+      $("rMsg").textContent=offline?"No internet connection. Connect and try again.":e.message;
+      $("rGo").disabled=false;$("rSkip").disabled=false;
+    }
+  };
 }
 
 /* ---------- Voice ---------- */
@@ -1258,27 +1259,12 @@ function parseSpoken(t){
   }).join("");
 }
 
-/* ---------- Scanner (library loads only when the scanner is opened) ---------- */
-let scanCtrl=null,scanReader=null,zxingPromise=null;
-function loadScanner(){
-  if(window.ZXing)return Promise.resolve();
-  if(!zxingPromise){
-    zxingPromise=new Promise((res,rej)=>{
-      const s=document.createElement("script");
-      s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
-      s.onload=res;
-      s.onerror=()=>{zxingPromise=null;rej(new Error("scanner failed to load"))};
-      document.head.appendChild(s);
-    });
-  }
-  return zxingPromise;
-}
+/* ---------- Scanner ---------- */
+let scanCtrl=null,scanReader=null;
 async function startScan(){
   $("scan").style.display="block";
-  $("scanMsg").textContent="Loading camera…";
+  $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
   try{
-    await loadScanner();
-    $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
     scanReader=new ZXing.BrowserMultiFormatReader();
     scanCtrl=await scanReader.decodeFromConstraints({video:{facingMode:"environment"}},$("vid"),res=>{
       if(!res)return;
@@ -1300,8 +1286,6 @@ function stopScan(){
 document.addEventListener("click",e=>{
   const t=e.target;
   if(!t.closest("#menu,#menuBtn"))openMenu(false);
-
-  if(t.closest("#seeMore")){openMenu(false);showWhatsNew();return}
 
   const tabBtn=t.closest("[data-tab]");
   if(tabBtn){setTab(tabBtn.dataset.tab);return}
@@ -1335,7 +1319,7 @@ document.addEventListener("click",e=>{
   if(menuEl){
     openMenu(false);
     const m=menuEl.dataset.m;
-    if(m==="tut"){startTutorial()}
+    if(m==="tut"){tutI=0;tutStep(closeModal)}
     else if(m==="how"){
       $("mbox").innerHTML=`<h2>📖 How to use</h2><ol>
         <li><b>Inventory:</b> paste or type one or many numbers, pick the SIM from the dropdown, set box and status, then tap Add.</li>
@@ -1348,7 +1332,7 @@ document.addEventListener("click",e=>{
         <li><b>Analytics:</b> today's sales, earnings, and fastest-selling sites.</li>
         <li><b>Brand:</b> change colors, SIM number color per network, and edit the site list.</li>
         <li><b>Password:</b> set one from the menu. You'll enter it every time you open the app. If you forget it, all data is deleted, so keep it safe.</li>
-        <li><b>Sign out:</b> all saved numbers are deleted on this device. Back up first.</li>
+        <li><b>Cloud backup:</b> sign in with your cloud email and password to back up or restore your list. Connect to the internet for this step.</li>
         <li>Save and Restore backups are in the menu.</li></ol>
         <div class="row"><button id="mClose">Close</button></div>`;
       $("modal").style.display="flex";$("mClose").onclick=closeModal;
@@ -1359,13 +1343,13 @@ document.addEventListener("click",e=>{
     else if(m==="lock")lockNow();
     else if(m==="save")downloadBackup();
     else if(m==="restore")$("up").click();
+    else if(m==="cloud")cloudDialog();
     else if(m==="log"){
       $("mbox").innerHTML=`<h2>📝 Changelog</h2>`+CHANGES.map(c=>`<div class="mu" style="margin-top:6px"><b>${c.v}</b></div><ul style="padding-left:20px;margin:4px 0 10px">`+c.items.map(i=>`<li>${i}</li>`).join("")+`</ul>`).join("")
         +`<div class="row"><button id="mClose">Close</button></div>`;
       $("modal").style.display="flex";$("mClose").onclick=closeModal;
     }
     else if(m==="who")showWho();
-    else if(m==="logout")askLogout();
     return;
   }
 
@@ -1433,108 +1417,23 @@ $("lockForgot").onclick=forgotPw;
 matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",()=>{if(brand.mode==="system"){applyBrand();render();if(tab==="brand")renderBrand()}});
 let rzT=null;
 addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");if(tab==="num")renderSheet()},150)});
-addEventListener("pagehide",()=>{if(started)saveAll()});
 
-/* ---------- Start (runs after Firebase confirms sign-in) ---------- */
-let appStarted=false;
-async function startApp(){
-  if(appStarted)return;
-  appStarted=true;
-  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
-  await loadData();
-  loadName();applyBrand();
+/* ---------- Init ---------- */
+(function init(){
+  load();loadName();applyBrand();
   $("carrier").innerHTML=carrierOpts("");
-  $("verTxt").innerHTML=`Version ${APP_VERSION} · <span id="seeMore">See more</span>`;
+  $("verTxt").textContent=`Version ${APP_VERSION}`;
   refreshMenu();
-  document.body.classList.remove("auth-pending");
-  $("splash").style.display="none";
+  let needRestore=false;try{needRestore=localStorage.getItem(KEYRESTORE)==="1"}catch(e){}
   if(hasPw()){
     lockNow();
   }else{
     started=true;
     setTab("inv");
-    afterLogin();
+    if(needRestore)cloudRestorePrompt(onboard);
+    else onboard();
   }
-}
+})();
 </script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore, doc, getDoc, setDoc, serverTimestamp, increment
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Paste your config from Firebase console → Project settings → Your apps
-const fbApp = initializeApp({
-  apiKey: "AIzaSyBXprNKc3EI7xasUQCt9NEqGr_UaoW8ko0",
-  authDomain: "otp-manager-4818b.firebaseapp.com",
-  projectId: "otp-manager-4818b",
-  appId: "1:8987208306:web:02f1cba7e25ccaae6370eb"
-});
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
-
-const gate = document.getElementById("authGate");
-const splash = document.getElementById("splash");
-const gMsg = document.getElementById("agMsg");
-const gEmail = document.getElementById("agEmail");
-const gPass = document.getElementById("agPass");
-
-function deviceId(){
-  let id = localStorage.getItem("deviceId");
-  if(!id){ id = crypto.randomUUID(); localStorage.setItem("deviceId", id); }
-  return id;
-}
-
-/* Runs in the background. The app never waits for this. */
-async function recordDevice(uid){
-  const id = deviceId();
-  const ref = doc(db, "users", uid, "devices", id);
-  const snap = await getDoc(ref);
-  const data = {
-    deviceId: id,
-    userAgent: navigator.userAgent,
-    lastSeen: serverTimestamp(),
-    loginCount: increment(1)
-  };
-  if(!snap.exists()) data.firstSeen = serverTimestamp();
-  await setDoc(ref, data, { merge: true });
-}
-
-async function doSignIn(){
-  gMsg.textContent = "";
-  const email = gEmail.value.trim();
-  const pass = gPass.value;
-  if(!email || !pass){
-    gMsg.textContent = "Enter your email and password.";
-    return;
-  }
-  try{
-    await signInWithEmailAndPassword(auth, email, pass);
-  }catch(e){
-    gMsg.textContent = "Sign-in failed. Check your email and password.";
-  }
-}
-document.getElementById("agIn").onclick = doSignIn;
-gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
-
-// Used by the Sign out button (the app clears its saved data first)
-window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
-
-onAuthStateChanged(auth, (user) => {
-  if(!user){
-    splash.style.display = "none";
-    document.body.classList.add("auth-pending");
-    gate.style.display = "flex";
-    return;
-  }
-  gate.style.display = "none";
-  recordDevice(user.uid).catch(e => console.error("Device log failed", e));
-  startApp();
-});
-</script>
-
 </body>
 </html>

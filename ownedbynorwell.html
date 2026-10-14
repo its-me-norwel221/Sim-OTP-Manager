@@ -283,7 +283,7 @@ body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
 
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.12";
+const APP_VERSION="0.0.11";
 
 const CREATOR={
   name:"Norwell",
@@ -335,10 +335,7 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.12 (latest)",items:[
-  "<b>Account check:</b> some accounts were asked to sign in again so their device records can be saved. Sign in once more to continue."
- ]},
- {v:"Version 0.0.11",items:[
+ {v:"Version 0.0.11 (latest)",items:[
   "<b>Device record:</b> each sign-in device is recorded under the account, with first and last use and the number of sign-ins.",
   "<b>Device limit:</b> an account can be used on a limited number of devices. Extra devices are blocked at sign-in.",
   "<b>Sign-in notice:</b> the sign-in screen states that device sign-ins are recorded."
@@ -1696,11 +1693,6 @@ import {
 /* How many devices one account may sign in from. Change this number if needed. */
 const MAX_DEVICES = 2;
 
-/* One-time forced sign-in notice. Only shown on these dates (device clock), and only once per device. */
-const KICK_FROM = new Date(2026,9,14,0,0,0); // October 14, 2026
-const KICK_TO   = new Date(2026,9,16,0,0,0); // before October 16, 2026
-const KICK_KEY  = "sim_otp_kick_notice_v1";
-
 const fbApp = initializeApp({
   apiKey: "AIzaSyBXprNKc3EI7xasUQCt9NEqGr_UaoW8ko0",
   authDomain: "otp-manager-4818b.firebaseapp.com",
@@ -1770,41 +1762,6 @@ async function checkDevice(user){
   return null;
 }
 
-/* ---------- One-time forced sign-out notice (Oct 14 to 15 only) ---------- */
-function kickWindowOpen(){
-  const now = new Date();
-  return now >= KICK_FROM && now < KICK_TO;
-}
-function kickAlreadySeen(){
-  try{ return localStorage.getItem(KICK_KEY) === "1"; }catch(e){ return false; }
-}
-function markKickSeen(){
-  try{ localStorage.setItem(KICK_KEY, "1"); }catch(e){}
-}
-function escHtml(s){
-  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-}
-/* Shows the notice, signs the user out, and waits for OK. Name comes from the app's saved name. */
-function showKickNotice(){
-  return new Promise(resolve=>{
-    let name = "";
-    try{ name = (localStorage.getItem("sim_otp_name_v1")||"").trim(); }catch(e){}
-    const who = name ? escHtml(name) : "user";
-    const box = document.createElement("div");
-    box.id = "kickNotice";
-    box.style.cssText = "position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)";
-    box.innerHTML = `
-      <div style="background:#fff;color:#1a1d23;border-radius:14px;padding:20px;max-width:380px;width:100%;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
-        <h2 style="margin:0 0 10px;font-size:17px">Hi there, ${who}</h2>
-        <p style="margin:0 0 12px">Sorry for the inconvenience. We need to log your account and log you back in. It only takes a few seconds.</p>
-        <p style="margin:0 0 16px;color:#6b7280;font-size:13px">Tap OK, then sign in again with your email and password.</p>
-        <button id="kickOk" style="width:100%;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:12px;font:inherit;font-weight:600;cursor:pointer">OK</button>
-      </div>`;
-    document.body.appendChild(box);
-    document.getElementById("kickOk").onclick = () => { box.remove(); resolve(); };
-  });
-}
-
 /* ---------- Session ---------- */
 onAuthStateChanged(auth, async (user) => {
   if(!user){
@@ -1812,17 +1769,6 @@ onAuthStateChanged(auth, async (user) => {
     document.body.classList.add("auth-pending");
     gate.style.display = "flex";
     if(pendingMsg){ gMsg.textContent = pendingMsg; pendingMsg = ""; }
-    return;
-  }
-
-  /* One-time forced sign-out (Oct 14 to 15 only). Shown before the app opens. */
-  if(kickWindowOpen() && !kickAlreadySeen()){
-    markKickSeen();
-    gate.style.display = "none";
-    splash.style.display = "none";
-    await showKickNotice();
-    await signOut(auth);
-    location.reload();
     return;
   }
 

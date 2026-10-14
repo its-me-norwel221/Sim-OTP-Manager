@@ -6,6 +6,7 @@
 <title>SIM OTP Manager</title>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://evgifetxqthbrezibqgc.supabase.co" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <style>
 :root{box-sizing:border-box;--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--simc:#1a1d23;--glass:rgba(255,255,255,.55);--glassb:rgba(255,255,255,.6);color-scheme:light}
@@ -167,6 +168,7 @@ body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
       <button id="agIn" class="ag-btn">Sign in</button>
       <div id="agMsg" class="ag-err"></div>
       <div class="ag-note">No account? Ask the administrator to create one for you.</div>
+      <div class="ag-note">This app records the devices used to sign in, to prevent account sharing.</div>
     </div>
   </div>
 </div>
@@ -281,7 +283,7 @@ body.auth-pending > *:not(#authGate):not(#splash){display:none !important}
 
 <script>
 /* ---------- Editable settings ---------- */
-const APP_VERSION="0.0.9";
+const APP_VERSION="0.0.11";
 
 const CREATOR={
   name:"Norwell",
@@ -333,9 +335,17 @@ const SIMCOLORS={
  orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
 };
 const CHANGES=[
- {v:"Version 0.0.9 (latest)",items:[
-  "<b>Cloud backup fixed:</b> Backup now and Restore from cloud run again after you confirm. Before, the confirmation could stop the request without any message.",
-  "<b>Errors shown:</b> if a cloud step fails, the message appears on screen instead of the page doing nothing.",
+ {v:"Version 0.0.11 (latest)",items:[
+  "<b>Device record:</b> each sign-in device is recorded under the account, with first and last use and the number of sign-ins.",
+  "<b>Device limit:</b> an account can be used on a limited number of devices. Extra devices are blocked at sign-in.",
+  "<b>Sign-in notice:</b> the sign-in screen states that device sign-ins are recorded."
+ ]},
+ {v:"Version 0.0.10",items:[
+  "<b>Cloud email not filled in:</b> the cloud dialog and the restore screen no longer show the last email automatically. Type it each time."
+ ]},
+ {v:"Version 0.0.9",items:[
+  "<b>Cloud backup fixed:</b> Backup now and Restore from cloud run again after you confirm.",
+  "<b>Errors shown:</b> if a cloud step fails, the message appears on screen.",
   "<b>Same confirmations:</b> Backup now still asks before replacing the cloud copy, and Restore still asks before replacing this phone's list."
  ]},
  {v:"Version 0.0.8",items:[
@@ -1250,7 +1260,7 @@ function askConfirm({title,bodyHtml,okLabel,danger}){
 /* Cloud dialog. Backup replaces the cloud copy; Restore replaces this phone's list. */
 function cloudDialog(){
   modalLock=true;
-  let savedEmail="";try{savedEmail=localStorage.getItem(KEYCE)||""}catch(e){}
+  const savedEmail="";
   $("mbox").innerHTML=`<h2>☁️ Cloud backup and restore</h2>
   <p class="mu">Enter the email and password of the cloud account, then choose one action:</p>
   <ul class="mu" style="padding-left:18px;margin:0 0 10px">
@@ -1337,7 +1347,7 @@ function cloudDialog(){
   $("cUp").onclick=()=>run("up");
   $("cDown").onclick=()=>run("down");
 }
-/* Re-opens the cloud dialog with the email kept, after a cancelled confirmation or an error. */
+/* Re-opens the cloud dialog after a cancelled confirmation or an error. The email field starts empty. */
 function cloudDialog_reopen(email){
   try{localStorage.setItem(KEYCE,email)}catch(e){}
   cloudDialog();
@@ -1346,7 +1356,7 @@ function cloudDialog_reopen(email){
 /* Shown after a password reset: restore the cloud backup with email and password, or start fresh. */
 function cloudRestorePrompt(after){
   modalLock=true;
-  let savedEmail="";try{savedEmail=localStorage.getItem(KEYCE)||""}catch(e){}
+  const savedEmail="";
   $("mbox").innerHTML=`<h2>☁️ Restore your data</h2>
   <p class="mu">This device was reset. If you have a cloud backup, enter its email and password to restore it, or start fresh.</p>
   <input type="text" id="rEmail" placeholder="Email" value="${esc(savedEmail)}" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;margin-bottom:8px">
@@ -1676,8 +1686,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, getDocs, collection, setDoc, serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Paste your config from Firebase console → Project settings → Your apps
+/* How many devices one account may sign in from. Change this number if needed. */
+const MAX_DEVICES = 2;
+
 const fbApp = initializeApp({
   apiKey: "AIzaSyBXprNKc3EI7xasUQCt9NEqGr_UaoW8ko0",
   authDomain: "otp-manager-4818b.firebaseapp.com",
@@ -1685,12 +1700,15 @@ const fbApp = initializeApp({
   appId: "1:8987208306:web:02f1cba7e25ccaae6370eb"
 });
 const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
 
 const gate = document.getElementById("authGate");
 const splash = document.getElementById("splash");
 const gMsg = document.getElementById("agMsg");
 const gEmail = document.getElementById("agEmail");
 const gPass = document.getElementById("agPass");
+
+let pendingMsg = "";
 
 /* ---------- Sign-in gate (Firebase) ---------- */
 async function doSignIn(){
@@ -1710,15 +1728,61 @@ async function doSignIn(){
 document.getElementById("agIn").onclick = doSignIn;
 gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
 
-// Used by the Sign out button (the app clears its saved data first)
 window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
 
+/* ---------- Device record ---------- */
+/* A random ID stored on this browser. Clearing the browser data makes it a new device. */
+function deviceId(){
+  let id = null;
+  try{ id = localStorage.getItem("deviceId"); }catch(e){}
+  if(!id){
+    id = crypto.randomUUID();
+    try{ localStorage.setItem("deviceId", id); }catch(e){}
+  }
+  return id;
+}
+
+/* Returns a message if this device is blocked, or null if it may sign in. */
+async function checkDevice(user){
+  const id = deviceId();
+  const ids = (await getDocs(collection(db, "users", user.uid, "devices"))).docs.map(d => d.id);
+  if(!ids.includes(id) && ids.length >= MAX_DEVICES){
+    return `This account is already used on ${MAX_DEVICES} devices. Contact the seller to reset it.`;
+  }
+  const ref = doc(db, "users", user.uid, "devices", id);
+  const existing = await getDoc(ref);
+  const data = {
+    deviceId: id,
+    userAgent: navigator.userAgent.slice(0, 300),
+    lastSeen: serverTimestamp(),
+    loginCount: increment(1)
+  };
+  if(!existing.exists()) data.firstSeen = serverTimestamp();
+  await setDoc(ref, data, { merge: true });
+  return null;
+}
+
 /* ---------- Session ---------- */
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if(!user){
     splash.style.display = "none";
     document.body.classList.add("auth-pending");
     gate.style.display = "flex";
+    if(pendingMsg){ gMsg.textContent = pendingMsg; pendingMsg = ""; }
+    return;
+  }
+
+  gMsg.textContent = "Checking your account…";
+  let blocked = null;
+  try{
+    blocked = await checkDevice(user);
+  }catch(e){
+    /* If the check cannot run (for example, no internet), the buyer is not locked out. */
+    console.error("Device check failed", e);
+  }
+  if(blocked){
+    pendingMsg = blocked;
+    await signOut(auth);
     return;
   }
   gate.style.display = "none";

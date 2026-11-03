@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIM OTP Manager</title>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://evgifetxqthbrezibqgc.supabase.co" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<style>
+:root{box-sizing:border-box;--bg:#f4f5f7;--card:#fff;--tx:#1a1d23;--mu:#6b7280;--ln:#e2e5ea;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--simc:#1a1d23;--glass:rgba(255,255,255,.55);--glassb:rgba(255,255,255,.6);color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(12px + env(safe-area-inset-bottom,0px));max-width:900px;transition:max-width .2s}
+body.wide{max-width:none}
+h1{font-size:18px;margin:0}
+button,.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+button.alt{background:var(--card);color:var(--tx);border:1px solid var(--ln)}
+button.del{background:none;color:var(--bad);padding:4px 8px}
+button.danger{background:var(--bad)}
+input[type=text],input[type=number],input[type=search],select,textarea{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;min-width:0}
+.pwf{-webkit-text-security:disc;text-security:disc}
+select{cursor:pointer}
+textarea{width:100%;min-height:84px;resize:vertical}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center}
+.pill{background:var(--card);border:1px solid var(--ln);border-radius:99px;padding:2px 9px;font-size:12px;white-space:nowrap}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:6px;overflow-x:auto;background:var(--bg);padding:6px 0 8px;margin-bottom:6px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:99px;padding:8px 13px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.pane{display:none}
+.pane.on{display:block}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+#scan{display:none}
+#scan video{width:100%;border-radius:10px;background:#000;max-height:260px;object-fit:cover}
+.mu{color:var(--mu);font-size:13px}
+.num{font-size:19px;font-weight:700;letter-spacing:.5px}
+.slot{width:72px;text-align:center;font-weight:700}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.sites{display:none;margin-top:10px;border-top:1px solid var(--ln);padding-top:8px}
+.card.open .sites{display:block}
+.cat{font-size:12px;font-weight:700;color:var(--mu);margin:10px 0 4px}
+.site{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:6px;cursor:pointer}
+.site input{width:20px;height:20px;accent-color:var(--ok);flex:0 0 auto}
+.site.on{opacity:.55;text-decoration:line-through}
+.site .p{margin-left:auto;font-weight:700}
+.chk2{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer}
+.chk2 input{width:18px;height:18px;accent-color:var(--ok)}
+.chip{display:inline-block;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:6px 9px;margin:3px 4px 3px 0;cursor:pointer;font-size:14px}
+.chip b{color:var(--ac)}
+.nb{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
+.slotb{display:inline-block;min-width:38px;text-align:center;font-weight:700;padding:7px 6px;border:2px solid var(--ln);border-radius:8px;background:var(--bg);user-select:none;cursor:pointer}
+.slotb.q{color:var(--bad);border-style:dashed}
+.na{color:var(--mu);opacity:.5;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin-bottom:10px}
+.stat{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px}
+.stat b{display:block;font-size:20px;margin-top:2px}
+.brow{display:flex;align-items:center;gap:8px;margin:7px 0;font-size:14px}
+.brow span{min-width:120px}
+.track{flex:1;height:8px;background:var(--bg);border-radius:99px;overflow:hidden}
+.track div{height:100%;background:var(--ac)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.pal{background:var(--bg);color:var(--tx);border:1px solid var(--ln);display:flex;align-items:center;gap:6px;font-weight:600}
+.pal.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--ac) inset}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--ln);flex:0 0 auto}
+.simnote{display:block;font-size:12px;color:var(--mu);background:var(--bg);border:1px dashed var(--ln);border-radius:8px;padding:4px 8px;margin:0 0 8px;cursor:pointer;word-break:break-word}
+.simnote b{color:var(--tx);font-weight:600}
+.hsec{font-size:13px;font-weight:700;color:var(--mu);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.4px}
+.hitem{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.hitem .hq{font-weight:700;font-size:15px;word-break:break-word}
+.hitem .hmeta{font-size:12px;color:var(--mu);margin-top:2px}
+.hitem .hchips{margin-top:4px}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:2px 8px}
+.sg .cat{grid-column:1/-1}
+.nl-comp{overflow:hidden;width:100%}
+.nl-comp table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(9px,.8vw,12px)}
+.nl-comp th,.nl-comp td{border:1px solid var(--ln);padding:2px 1px;text-align:center;vertical-align:middle;word-break:break-word;background:var(--card)}
+.nl-comp thead th{background:var(--bg);line-height:1.1}
+.nl-comp .c-box{width:4%}
+.nl-comp .c-num{width:12%}
+.nl-comp .c-sim{width:6%}
+.nl-comp .c-used{width:5%}
+.nl-comp th.grp{font-size:.95em;white-space:normal}
+.nl-comp th.sv{padding:4px 0;height:1px}
+.vtxt{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;display:inline-block;margin:0 auto;line-height:1.05}
+.nl-comp .cc{display:flex;justify-content:center;align-items:center;cursor:pointer;margin:0}
+.nl-comp .cc input{width:100%;max-width:14px;height:auto;margin:0;accent-color:var(--ok)}
+.nl-comp .sm{font-size:.95em;white-space:normal}
+.nl-comp .slotb{min-width:0;padding:1px 2px;font-size:.95em;border-width:1px;border-radius:4px}
+.nl-comp b{cursor:pointer;word-break:break-all}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.12);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:35}
+#scrim.show{opacity:1;pointer-events:auto}
+.menu{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));right:12px;width:250px;border-radius:18px;padding:6px;background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);border:1px solid var(--glassb);box-shadow:0 14px 40px rgba(0,0,0,.18);z-index:40;opacity:0;transform:translateY(-12px) scale(.96);transform-origin:top right;pointer-events:none;transition:opacity .25s ease,transform .32s cubic-bezier(.2,.8,.2,1)}
+.menu.show{opacity:1;transform:none;pointer-events:auto}
+.menu .mi{padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:500}
+.menu .mi:hover,.menu .mi:active{background:rgba(127,127,127,.16)}
+.menu .ver{font-size:11px;color:var(--mu);padding:8px 12px 6px;border-top:1px solid var(--ln);margin-top:4px}
+#seeMore{color:var(--ac);cursor:pointer;font-weight:700;margin-left:4px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:90}
+#modal .box{background:var(--card);border-radius:14px;padding:18px;max-width:440px;max-height:80%;overflow:auto;width:100%;animation:pop .25s ease}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(6px)}to{opacity:1;transform:none}}
+#modal h2{margin:0 0 10px;font-size:17px}
+#modal h3{margin:10px 0 6px;font-size:15px}
+#modal ol,#modal ul{padding-left:20px;margin:0 0 12px}
+#modal li{margin-bottom:6px}
+#modal p{margin:0 0 10px}
+.creator{display:flex;align-items:center;gap:10px;margin-top:6px}
+.avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;border:2px solid var(--ln)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.warnbox{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.35);border-radius:10px;padding:10px 12px;margin:10px 0}
+.warnbox b{color:var(--bad)}
+.fullnote{white-space:pre-wrap;word-break:break-word;background:var(--bg);border-radius:8px;padding:10px;margin:0 0 12px}
+#lock{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:80}
+#lock .lbox{width:100%;max-width:360px;text-align:center}
+#lock h2{margin:6px 0 4px;font-size:18px}
+#lock input{width:100%;margin-top:14px;text-align:center;font-size:17px}
+.linkbtn{background:none;border:0;color:var(--ac);padding:10px 4px;font:inherit;font-weight:600;cursor:pointer;margin-top:6px}
+.errmsg{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:99px;font-size:13px;display:none;z-index:95;max-width:90%;text-align:center}
+body.auth-pending > *:not(#authGate):not(#splash):not(#kickNotice){display:none !important}
+#splash{position:fixed;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a0716;color:#c4b5fd;font-size:14px}
+#splash .sp{width:40px;height:40px;border:4px solid rgba(196,181,253,.25);border-top-color:#a855f7;border-radius:50%;animation:spinx .8s linear infinite}
+@keyframes spinx{to{transform:rotate(360deg)}}
+#authGate{display:none;position:fixed;inset:0;z-index:100;align-items:center;justify-content:center;padding:20px;background:#0a0716;overflow:hidden;margin:0}
+.aurora{position:absolute;inset:0;filter:blur(70px);z-index:0;pointer-events:none}
+.aurora span{position:absolute;border-radius:50%;opacity:.75;animation:drift 16s ease-in-out infinite alternate}
+.aurora span:nth-child(1){width:70vmax;height:70vmax;background:#7c3aed;top:-25%;left:-20%}
+.aurora span:nth-child(2){width:60vmax;height:60vmax;background:#c026d3;bottom:-25%;right:-20%;animation-duration:20s;animation-delay:-4s}
+.aurora span:nth-child(3){width:50vmax;height:50vmax;background:#4f46e5;top:25%;left:25%;animation-duration:24s;animation-delay:-8s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(10vw,8vh) scale(1.2)}}
+.ag-wrap{position:relative;z-index:1;width:100%;max-width:370px;border-radius:20px;padding:2px;overflow:hidden;box-shadow:0 20px 60px rgba(124,58,237,.35)}
+.ag-wrap::before{content:"";position:absolute;left:50%;top:50%;width:200%;aspect-ratio:1;transform:translate(-50%,-50%);background:conic-gradient(from 0deg,#a855f7,#6366f1,#ec4899,#38bdf8,#a855f7);animation:spin 5s linear infinite}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.ag-card{position:relative;background:rgba(14,10,28,.92);border-radius:18px;padding:24px;color:#f5f3ff;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.ag-title{font-size:20px;font-weight:700;background:linear-gradient(90deg,#c4b5fd,#f0abfc,#93c5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ag-sub{color:#a5a0bf;font-size:14px;margin:4px 0 16px}
+#authGate input{width:100%;margin:0 0 10px;padding:12px;border-radius:10px;border:1px solid rgba(196,181,253,.25);background:rgba(255,255,255,.06);color:#f5f3ff;font:inherit;outline:none}
+#authGate input::placeholder{color:#8b85a8}
+#authGate input:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.25)}
+.ag-btn{width:100%;padding:12px;border:0;border-radius:10px;color:#fff;font:inherit;font-weight:600;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#c026d3,#4f46e5);background-size:200% 200%;animation:shine 6s ease infinite}
+@keyframes shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.ag-err{color:#fca5a5;font-size:13px;min-height:18px;margin-top:10px}
+.ag-note{color:#8b85a8;font-size:12px;margin-top:8px}
+</style>
+</head>
+<body class="auth-pending">
+
+<div id="splash"><div class="sp"></div><div>Loading…</div></div>
+
+<div id="authGate">
+  <div class="aurora"><span></span><span></span><span></span></div>
+  <div class="ag-wrap">
+    <div class="ag-card">
+      <div class="ag-title">📶 SIM OTP Manager</div>
+      <div class="ag-sub">Sign in to continue</div>
+      <input id="agEmail" type="email" placeholder="Email" autocomplete="username">
+      <input id="agPass" type="password" placeholder="Password" autocomplete="current-password">
+      <button id="agIn" class="ag-btn">Sign in</button>
+      <div id="agMsg" class="ag-err"></div>
+      <div class="ag-note">No account? Ask the administrator to create one for you.</div>
+      <div class="ag-note">This app records the devices used to sign in, to prevent account sharing.</div>
+    </div>
+  </div>
+</div>
+
+<div class="top">
+  <h1>📶 SIM OTP Manager</h1>
+  <div class="row">
+    <span class="pill" id="stats"></span>
+    <button class="alt" id="menuBtn">☰</button>
+  </div>
+</div>
+
+<div id="scrim"></div>
+<div class="menu" id="menu">
+  <div class="mi" data-m="tut">🎓 Tutorial</div>
+  <div class="mi" data-m="how">📖 How to use</div>
+  <div class="mi" data-m="name">✏️ Change name</div>
+  <div class="mi" data-m="theme">🌙 Dark mode</div>
+  <div class="mi" data-m="pw" id="mPw">🔒 Set password</div>
+  <div class="mi" data-m="lock" id="mLock" style="display:none">🔒 Lock now</div>
+  <div class="mi" data-m="save">💾 Save backup (.txt)</div>
+  <div class="mi" data-m="restore">📂 Restore backup</div>
+  <div class="mi" data-m="cloud">☁️ Cloud backup and restore</div>
+  <div class="mi" data-m="log">📝 Changelog</div>
+  <div class="mi" data-m="who">👤 Who made?</div>
+  <div class="mi" data-m="logout">🚪 Sign out</div>
+  <div class="ver" id="verTxt"></div>
+</div>
+<input type="file" id="up" accept=".txt,text/plain" hidden>
+
+<nav class="tabs">
+  <button class="tab" data-tab="inv">📥 Inventory</button>
+  <button class="tab" data-tab="look">🔍 Lookup</button>
+  <button class="tab" data-tab="num">🔢 Number List</button>
+  <button class="tab" data-tab="ana">📊 Analytics</button>
+  <button class="tab" data-tab="brand">🎨 Brand</button>
+  <button class="tab" data-tab="hist">🕘 Searches</button>
+</nav>
+
+<div id="modal"><div class="box" id="mbox"></div></div>
+
+<div id="lock">
+  <div class="lbox">
+    <div style="font-size:40px">🔒</div>
+    <h2>SIM OTP Manager is locked</h2>
+    <p class="mu">Enter your password to continue.</p>
+    <input type="text" id="lockPw" class="pwf" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true">
+    <div class="row" style="margin-top:10px;justify-content:center"><button id="lockGo" style="min-width:140px">Unlock</button></div>
+    <button class="linkbtn" id="lockForgot">Forgot password?</button>
+    <div class="errmsg" id="lockMsg"></div>
+  </div>
+</div>
+
+<section class="pane" id="p-inv">
+  <div class="card" id="greet" style="display:none"></div>
+  <div class="row" style="margin-bottom:10px">
+    <button id="scanBtn">📷 Scan barcode</button>
+  </div>
+  <div class="card" id="scan">
+    <video id="vid" playsinline muted></video>
+    <div class="row" style="margin-top:8px">
+      <span class="mu" id="scanMsg">Point the camera at the barcode on the SIM card. Don't scan the ICC number.</span>
+      <button class="alt" id="stopBtn" style="margin-left:auto">Stop</button>
+    </div>
+  </div>
+  <div class="card">
+    <textarea id="numIn" placeholder="Type or paste one or many numbers, separated by space, comma or new line&#10;e.g. 09553603320 09384842524 09374648280"></textarea>
+    <div class="row" style="margin-top:8px">
+      <select id="carrier" style="flex:1"></select>
+      <input type="number" id="bxIn" class="slot" min="1" placeholder="Box">
+    </div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <label class="chk2"><input type="checkbox" id="fActive" checked> ✅ Active</label>
+      <label class="chk2"><input type="checkbox" id="fBarred"> 🚫 Barred</label>
+      <label class="chk2"><input type="checkbox" id="fNet"> 📵 Network not working</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="alt" id="micBtn" title="Voice input: tap, then say the digits one by one" style="padding:10px">🗣️</button>
+      <button id="addBtn" style="flex:1">Add</button>
+    </div>
+    <div class="mu" style="margin-top:8px">Valid: <b id="cnt">0</b> · Needs fixing: <b id="bad">0</b></div>
+  </div>
+  <div id="invList"></div>
+</section>
+
+<section class="pane" id="p-look">
+  <input type="search" id="q" placeholder="Number, box 30, sim TNT, or site (e.g. Grab)" style="width:100%;margin-bottom:10px">
+  <div id="lookRes"></div>
+</section>
+
+<section class="pane" id="p-num">
+  <div class="row" style="margin-bottom:10px">
+    <input type="search" id="nlq" placeholder="Filter: number, box 30, sim TNT, or site" style="flex:1;min-width:0">
+    <button class="alt" id="nlAll" style="white-space:nowrap">👁 Show all site boxes</button>
+  </div>
+  <div id="sheet"></div>
+</section>
+
+<section class="pane" id="p-ana"></section>
+<section class="pane" id="p-brand"></section>
+<section class="pane" id="p-hist"></section>
+
+<div id="toast"></div>
+
+<script>
+/* ---------- Editable settings ---------- */
+const APP_VERSION="0.0.12";
+
+const CREATOR={
+  name:"Norwell",
+  img:"https://i.ibb.co/bRHJQNDL/1791722795270-3.jpg"
+};
+
+/* Cloud backup (Supabase). The anon key is public by design; row level security protects each user's data. */
+const SB_URL="https://evgifetxqthbrezibqgc.supabase.co";
+const SB_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2Z2lmZXR4cXRoYnJlemlicWdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4NjY4NDcsImV4cCI6MjEwNzQ0Mjg0N30.nPuUxojbC_UFszmgyA8wyyKWYs_OiYDm9IqabTkJNNM";
+
+const TUT=[
+  {icon:"📥",t:"Inventory",d:"Add your numbers here. Paste or type one or many, pick the SIM from the dropdown, set the box and status, then tap Add. Tap a card to tick the sites already used."},
+  {icon:"📷",t:"Scan barcode",d:"Tap Scan barcode and point the camera at the barcode on the SIM card. Scan only that barcode, not the ICC number printed on the card. The number is added as soon as it is read."},
+  {icon:"🗣️",t:"Voice input",d:"Tap the 🗣️ button, allow the microphone when asked, then say the digits one at a time, for example \"zero nine five five three…\". Pause briefly between numbers. English digits (zero, one, two…) and Tagalog (sero, isa, dalawa, tatlo…) both work. The number appears in the box, so check it, then tap Add. Use a quiet place, and if it misses a digit, just type the fix."},
+  {icon:"🔍",t:"Lookup",d:"Search by number, box 30, sim TNT, or a site name like Grab. See which numbers still have that site open."},
+  {icon:"🔢",t:"Number List",d:"All your numbers in one place. Site boxes are hidden to keep it fast. Tap Show all site boxes, or open a single number's ▼ Show sites. Phones show cards, laptops and PCs show the full table that fits the screen."},
+  {icon:"📊",t:"Analytics",d:"Today's sales, earnings, fastest-selling sites, the last 7 days, and how many SIMs use each network."},
+  {icon:"🎨",t:"Brand",d:"Change the color style, the number color for each SIM network, and edit the site list for all SIMs or only the ones you check."},
+  {icon:"🕘",t:"Searches",d:"See what you searched today, your most searched items, and your recent searches. Tap any search to run it again, and see which SIMs matched."},
+  {icon:"☰",t:"Menu",d:"Set a password to lock the app (you'll need it every visit). Save and Restore backups, cloud backup, change your name, dark mode, and the changelog are here too."}
+];
+
+const DEFAULT_CATS=[
+["FOOD AND DELIVERY",[["FOOD PANDA",10],["JOYRIDE",10],["LALAMOVE",9],["ANGKAS",8],["MOVE IT",7],["GRAB",7],["PICKUP COFFEE",7],["ZUS COFFEE",7]]],
+["SOCIAL MEDIA",[["TELEGRAM",15],["WECHAT",10],["TIKTOK",8],["WHATSAPP",7],["VIBER",7],["IG, FB, X",5],["DISCORD",5],["BUMBLE",5],["NIKI",5],["OKCUPID",5]]],
+["SHOPPING APPS",[["LAZADA",10],["SHOPEE",10],["TEMU",7],["AMAZON",7],["SHEIN",7],["ZALORA",6],["CAROUSELL",6],["UNIQLO",6]]],
+["E-WALLET",[["GCASH (+5 if 3c)",10],["MAYA",10],["PAYPAL",10],["COINSPH",10],["MARIBANK",7],["GOTYME",6],["GRABPAY",6],["CIMB",6]]],
+["CASINO SITES",[["BINGO PLUS",10],["GAMEZONE",10],["PH BINGO",5],["PHILSLOT",5],["TARA 777",5],["NEWSTAR",6],["PLAYTIME",8],["OKBET",5],["ARENA PLUS",5],["CASINO PLUS",5],["OTHER SITES/CASINO",5]]]
+];
+const CARRIERS=["TNT","GOMO","Smart","Globe","TM","DITO","Sun"];
+const NET={smart:["#16a34a","#fff"],tnt:["#eab308","#1a1d23"],dito:["#f97316","#fff"],tm:["#dc2626","#fff"],gomo:["#8b5cf6","#fff"],globe:["#2563eb","#fff"],sun:["#0891b2","#fff"]};
+const W={zero:0,oh:0,o:0,sero:0,one:1,isa:1,two:2,to:2,too:2,dalawa:2,three:3,tatlo:3,four:4,for:4,apat:4,five:5,lima:5,six:6,anim:6,seven:7,pito:7,eight:8,ate:8,walo:8,nine:9,siyam:9,syam:9};
+const PALETTES={
+ default:{name:"Classic blue",ac:"#2563eb",light:{bg:"#f4f5f7",card:"#ffffff",tx:"#1a1d23",mu:"#6b7280",ln:"#e2e5ea"},dark:{bg:"#0f1115",card:"#1a1d24",tx:"#eceef2",mu:"#9aa1ad",ln:"#2a2f39"}},
+ ocean:{name:"Ocean",ac:"#0e7490",light:{bg:"#eef6f9",card:"#ffffff",tx:"#17303a",mu:"#5b7682",ln:"#d5e6ec"},dark:{bg:"#0c1a1f",card:"#132830",tx:"#e3f1f5",mu:"#8fb0bb",ln:"#1f3b44"}},
+ mint:{name:"Mint",ac:"#059669",light:{bg:"#f0faf5",card:"#ffffff",tx:"#1b2e26",mu:"#5f7a6c",ln:"#d6ebe0"},dark:{bg:"#0d1914",card:"#14241d",tx:"#e2f3ea",mu:"#8fb3a0",ln:"#1f3a2e"}},
+ sand:{name:"Sand",ac:"#b45309",light:{bg:"#fbf7f0",card:"#ffffff",tx:"#2b2216",mu:"#7d6e5a",ln:"#eadfcc"},dark:{bg:"#17130d",card:"#221c13",tx:"#f3ebdd",mu:"#a89a84",ln:"#3a3020"}},
+ lavender:{name:"Lavender",ac:"#7c3aed",light:{bg:"#f7f4fd",card:"#ffffff",tx:"#241d33",mu:"#6e6585",ln:"#e4dcf3"},dark:{bg:"#110e18",card:"#1a1624",tx:"#ece7f6",mu:"#a49bb8",ln:"#2d2740"}},
+ rose:{name:"Rose",ac:"#be185d",light:{bg:"#fdf4f7",card:"#ffffff",tx:"#331a25",mu:"#8a6373",ln:"#f1d9e2"},dark:{bg:"#180d13",card:"#22141c",tx:"#f6e7ed",mu:"#b89aa7",ln:"#3b2330"}}
+};
+const SIMCOLORS={
+ ink:{name:"Default",light:"#1a1d23",dark:"#eceef2"},
+ blue:{name:"Blue",light:"#1d4ed8",dark:"#93c5fd"},
+ green:{name:"Green",light:"#047857",dark:"#6ee7b7"},
+ amber:{name:"Amber",light:"#b45309",dark:"#fcd34d"},
+ plum:{name:"Plum",light:"#7e22ce",dark:"#d8b4fe"},
+ rose:{name:"Rose",light:"#be123c",dark:"#fda4af"},
+ teal:{name:"Teal",light:"#0f766e",dark:"#5eead4"},
+ orange:{name:"Orange",light:"#c2410c",dark:"#fdba74"}
+};
+const CHANGES=[
+ {v:"Version 0.0.12 (latest)",items:[
+  "<b>SIM notes:</b> add an optional note to a SIM in Edit mode. The note shows above the Box, Edit and Delete row. Tap a long note to read it in full.",
+  "<b>Searches tab:</b> see what you searched today, your most searched items, and recent searches. Tap a search to run it again.",
+  "<b>Account check:</b> some accounts were asked to sign in again so their device records can be saved. Sign in once more to continue."
+ ]},
+ {v:"Version 0.0.11",items:[
+  "<b>Device record:</b> each sign-in device is recorded under the account, with first and last use and the number of sign-ins.",
+  "<b>Device limit:</b> an account can be used on a limited number of devices. Extra devices are blocked at sign-in.",
+  "<b>Sign-in notice:</b> the sign-in screen states that device sign-ins are recorded."
+ ]},
+ {v:"Version 0.0.10",items:[
+  "<b>Cloud email not filled in:</b> the cloud dialog and the restore screen no longer show the last email automatically. Type it each time."
+ ]},
+ {v:"Version 0.0.9",items:[
+  "<b>Cloud backup fixed:</b> Backup now and Restore from cloud run again after you confirm.",
+  "<b>Errors shown:</b> if a cloud step fails, the message appears on screen.",
+  "<b>Same confirmations:</b> Backup now still asks before replacing the cloud copy, and Restore still asks before replacing this phone's list."
+ ]},
+ {v:"Version 0.0.8",items:[
+  "<b>Safer cloud backup:</b> Backup now asks you to confirm first, because it replaces the cloud copy for that account.",
+  "<b>Empty list warning:</b> if this phone has no SIMs, the backup warns you before it replaces the cloud copy with an empty list.",
+  "<b>Clearer cloud dialog:</b> the instructions explain the difference between Backup now and Restore from cloud."
+ ]},
+ {v:"Version 0.0.7",items:[
+  "<b>Cloud backup restored:</b> cloud backup and restore use Supabase again, with the email and password of the cloud account.",
+  "<b>Sign-in unchanged:</b> the main sign-in screen still uses Firebase.",
+  "<b>Restore after reset:</b> after Forgot password → Delete everything, you can restore from the cloud or start fresh."
+ ]},
+ {v:"Version 0.0.6",items:[
+  "<b>Cloud backup by email and password:</b> each cloud account has its own backup.",
+  "<b>Restore after reset:</b> restore with an email and password, or start fresh."
+ ]},
+ {v:"Earlier",items:[
+  "<b>Faster opening</b>, a loading screen, and saved numbers that stay after you close the page.",
+  "<b>Password lock, tutorial, and sign out</b> with a backup warning.",
+  "<b>Inventory, Lookup, Number List, Analytics, and Brand</b> tabs with the features you use every day."
+ ]}
+];
+
+const KEY="sim_otp_manager_v1",KEYC="sim_otp_cats_v2",KEYL="sim_otp_log_v1",KEYB="sim_otp_brand_v2",KEYN="sim_otp_name_v1",KEYTUT="sim_otp_tutorial_seen",KEYPW="sim_otp_pw_v1",KEYRESTORE="sim_otp_restore_prompt",KEYCE="sim_otp_cloud_email";
+const KEY_SEARCH="sim_otp_searches_v1";
+const MAX_SEARCH=300;
+const KEY_MIRROR="sim_otp_snapshot_v3";
+const IDB_NAME="sim_otp_db",IDB_STORE="kv",IDB_ITEM="snapshot";
+let sims=[],cats=JSON.parse(JSON.stringify(DEFAULT_CATS)),log=[],brand={palette:"default",mode:"system",simColors:{}};
+let searches=[];
+let openId=null,userName=null,tab="inv",isDark=false,brandCar=CARRIERS[0],modalLock=false,started=false;
+let loaded=false;
+let signingOut=false;
+let nlShow=false;
+const nlOpen=new Set();
+let tutI=0;
+const $=id=>document.getElementById(id);
+const NOTE_PREVIEW=40;
+
+function idbOpen(){
+  return new Promise((res,rej)=>{
+    if(!self.indexedDB){rej(new Error("no indexedDB"));return}
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+}
+async function idbPut(text){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readwrite");
+    t.objectStore(IDB_STORE).put(text,IDB_ITEM);
+    t.oncomplete=()=>{db.close();res(true)};
+    t.onerror=()=>{db.close();rej(t.error)};
+  });
+}
+async function idbGet(){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readonly");
+    const q=t.objectStore(IDB_STORE).get(IDB_ITEM);
+    q.onsuccess=()=>{db.close();res(q.result||null)};
+    q.onerror=()=>{db.close();rej(q.error)};
+  });
+}
+async function idbDel(){
+  const db=await idbOpen();
+  return new Promise((res,rej)=>{
+    const t=db.transaction(IDB_STORE,"readwrite");
+    t.objectStore(IDB_STORE).delete(IDB_ITEM);
+    t.oncomplete=()=>{db.close();res(true)};
+    t.onerror=()=>{db.close();rej(t.error)};
+  });
+}
+function withTimeout(p,ms){
+  return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);
+}
+
+function normSim(s){
+  return {
+    id:s.id||Date.now()+Math.random(),
+    number:s.number,
+    slot:String(s.slot||""),
+    carrier:String(s.carrier||""),
+    used:Array.isArray(s.used)?s.used:[],
+    barred:!!s.barred,
+    netBad:!!s.netBad,
+    active:s.active!==false,
+    hide:Array.isArray(s.hide)?s.hide:[],
+    extra:Array.isArray(s.extra)?s.extra:[],
+    note:typeof s.note==="string"?s.note:""
+  };
+}
+
+async function readSnap(){
+  let a=null,b=null;
+  try{a=JSON.parse(localStorage.getItem(KEY_MIRROR)||"null")}catch(e){a=null}
+  try{b=JSON.parse((await withTimeout(idbGet().catch(()=>null),800))||"null")}catch(e){b=null}
+  const ok=x=>x&&typeof x==="object";
+  if(ok(a)&&ok(b))return (b.t||0)>(a.t||0)?b:a;
+  if(ok(a))return a;
+  if(ok(b))return b;
+  return null;
+}
+
+async function loadData(){
+  const snap=await readSnap();
+  if(snap){
+    sims=(Array.isArray(snap.sims)?snap.sims:[]).map(normSim);
+    if(Array.isArray(snap.cats))cats=snap.cats;
+    if(Array.isArray(snap.log))log=snap.log;
+    if(snap.brand&&typeof snap.brand==="object")brand={...brand,...snap.brand};
+  }else{
+    try{sims=(JSON.parse(localStorage.getItem(KEY)||"[]")||[]).map(normSim)}catch(e){sims=[]}
+    try{const c=JSON.parse(localStorage.getItem(KEYC)||"null");if(Array.isArray(c))cats=c}catch(e){}
+    try{log=JSON.parse(localStorage.getItem(KEYL)||"[]")||[]}catch(e){log=[]}
+    try{brand={...brand,...(JSON.parse(localStorage.getItem(KEYB)||"{}")||{})}}catch(e){}
+  }
+  if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+  loaded=true;
+}
+
+function saveAll(){
+  if(!loaded||signingOut)return false;
+  if(log.length>5000)log=log.slice(-5000);
+  const text=JSON.stringify({v:3,t:Date.now(),sims,cats,log,brand});
+  let lsOk=true;
+  try{
+    localStorage.setItem(KEY_MIRROR,text);
+    if(localStorage.getItem(KEY_MIRROR)!==text)throw new Error("verify failed");
+  }catch(e){lsOk=false}
+  idbPut(text).catch(()=>{
+    if(!lsOk)toast("⚠️ Could not save on this browser. Make a backup now.");
+  });
+  if(!lsOk)toast("⚠️ Local storage is full or blocked. Your browser copy was saved.");
+  return true;
+}
+
+function loadSearches(){
+  try{
+    const a=JSON.parse(localStorage.getItem(KEY_SEARCH)||"[]");
+    searches=Array.isArray(a)?a.filter(x=>x&&typeof x.q==="string"&&typeof x.t==="number"):[];
+  }catch(e){searches=[]}
+}
+function saveSearches(){
+  try{localStorage.setItem(KEY_SEARCH,JSON.stringify(searches))}catch(e){}
+}
+function recordSearch(raw){
+  const q=String(raw||"").trim().toLowerCase();
+  if(q.length<3)return;
+  const now=Date.now();
+  const last=searches[searches.length-1];
+  if(last&&last.q===q&&now-last.t<60000){last.t=now}
+  else searches.push({q,t:now});
+  if(searches.length>MAX_SEARCH)searches=searches.slice(-MAX_SEARCH);
+  saveSearches();
+}
+
+function loadName(){try{userName=localStorage.getItem(KEYN)||null}catch(e){}}
+function saveName(n){
+  userName=n||null;
+  try{if(n)localStorage.setItem(KEYN,n);else localStorage.removeItem(KEYN)}catch(e){}
+}
+
+function pwInput(id,placeholder){
+  return `<input type="text" id="${id}" class="pwf" placeholder="${placeholder}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" style="width:100%;margin-bottom:8px">`;
+}
+function hashPw(p){
+  const s="sim_otp_salt|"+p;
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507);h1^=Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507);h2^=Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36);
+}
+function storedPw(){try{return localStorage.getItem(KEYPW)}catch(e){return null}}
+function hasPw(){return !!storedPw()}
+function checkPw(p){return hasPw()&&hashPw(p)===storedPw()}
+function setPwStored(p){try{localStorage.setItem(KEYPW,hashPw(p))}catch(e){}refreshMenu()}
+function refreshMenu(){
+  const on=hasPw();
+  $("mPw").textContent=on?"🔑 Change or remove password":"🔒 Set password";
+  $("mLock").style.display=on?"":"none";
+}
+async function clearAllData(){
+  [KEY,KEYC,KEYL,KEYB,KEYN,KEYTUT,KEYPW,KEY_MIRROR,KEY_SEARCH].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
+  searches=[];
+  try{await idbDel()}catch(e){}
+}
+async function wipeAll(){
+  signingOut=true;
+  await clearAllData();
+  try{localStorage.setItem(KEYRESTORE,"1")}catch(e){}
+  location.reload();
+}
+function setupPw(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🔒 Set a password</h2>
+  <p class="mu">You'll enter this password every time you open the app. <b>If you forget it, all data in the app will be deleted.</b> Remember it or write it down somewhere safe.</p>
+  ${pwInput("pw1","New password (at least 4 characters)")}
+  ${pwInput("pw2","Type it again")}
+  <div class="errmsg" id="pwErr"></div>
+  <div class="row"><button id="pwSave">Save password</button><button class="alt" id="pwCancel">Cancel</button></div>`;
+  $("modal").style.display="flex";
+  $("pwCancel").onclick=closeModal;
+  $("pwSave").onclick=()=>{
+    const a=$("pw1").value,b=$("pw2").value;
+    if(a.length<4){$("pwErr").textContent="Use at least 4 characters.";return}
+    if(a!==b){$("pwErr").textContent="The two passwords don't match.";return}
+    setPwStored(a);closeModal();toast("Password set. You'll need it next time.");
+  };
+}
+function changePwDialog(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🔑 Change or remove password</h2>
+  <p class="mu">Enter your current password first.</p>
+  ${pwInput("pwCur","Current password")}
+  ${pwInput("pwNew","New password (leave blank to keep it)")}
+  ${pwInput("pwNew2","Type new password again")}
+  <div class="errmsg" id="pwErr"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="pwChange">Change password</button>
+    <button class="del" id="pwRemove">Remove password</button>
+    <button class="alt" id="pwCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("pwCancel").onclick=closeModal;
+  $("pwChange").onclick=()=>{
+    if(!checkPw($("pwCur").value)){$("pwErr").textContent="Current password is wrong.";return}
+    const a=$("pwNew").value,b=$("pwNew2").value;
+    if(!a){$("pwErr").textContent="Type a new password, or use Remove password.";return}
+    if(a.length<4){$("pwErr").textContent="Use at least 4 characters.";return}
+    if(a!==b){$("pwErr").textContent="The two new passwords don't match.";return}
+    setPwStored(a);closeModal();toast("Password changed");
+  };
+  $("pwRemove").onclick=()=>{
+    if(!checkPw($("pwCur").value)){$("pwErr").textContent="Enter the current password to remove it.";return}
+    try{localStorage.removeItem(KEYPW)}catch(e){}
+    refreshMenu();closeModal();toast("Password removed");
+  };
+}
+function openPwMenu(){hasPw()?changePwDialog():setupPw()}
+function unlockOK(){
+  $("lock").style.display="none";$("lockPw").value="";$("lockMsg").textContent="";
+  if(!started){started=true;setTab("inv");beginSession()}
+  else render();
+}
+function lockNow(){
+  stopScan();closeModal();
+  $("lock").style.display="flex";$("lockPw").value="";
+  setTimeout(()=>$("lockPw").focus(),50);
+}
+function tryUnlock(){
+  const p=$("lockPw").value;
+  if(checkPw(p))unlockOK();
+  else{$("lockMsg").textContent="Wrong password. Try again.";$("lockPw").select()}
+}
+function forgotPw(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>⚠️ Forgot password?</h2>
+  <p>If you forgot your password, <b>all SIMs, sites, analytics, and settings in this app will be permanently deleted from this device.</b></p>
+  <p>This can't be undone. Your backup files (.txt) are not affected. If you made a cloud backup, you can restore it after the reset.</p>
+  <div class="row" style="flex-wrap:wrap">
+    <button class="del" id="fDel" style="border:1px solid var(--bad);border-radius:8px">Delete everything</button>
+    <button class="alt" id="fCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("fCancel").onclick=closeModal;
+  $("fDel").onclick=wipeAll;
+}
+
+function askLogout(){
+  modalLock=true;
+  $("mbox").innerHTML=`<h2>🚪 Sign out?</h2>
+  <p><b>All saved numbers in this app will be deleted once you sign out.</b></p>
+  <p>Make sure you back up before signing out. Your backup file is the only way to bring the numbers back, unless you have a cloud backup.</p>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="loBackup">💾 Back up now</button>
+    <button class="del" id="loGo" style="border:1px solid var(--bad);border-radius:8px">Sign out &amp; delete</button>
+    <button class="alt" id="loCancel" style="margin-left:auto">Cancel</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("loCancel").onclick=closeModal;
+  $("loBackup").onclick=()=>downloadBackup();
+  $("loGo").onclick=doLogout;
+}
+async function doLogout(){
+  signingOut=true;
+  stopScan();
+  await clearAllData();
+  modalLock=false;
+  $("modal").style.display="none";
+  if(window.authSignOut)window.authSignOut();
+  else location.reload();
+}
+
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display="none",2600)}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function normNum(t){
+  const d=String(t).replace(/\D/g,"");
+  if(/^9\d{9}$/.test(d))return "0"+d;
+  if(/^09\d{9}$/.test(d))return d;
+  if(/^639\d{9}$/.test(d))return "0"+d.slice(2);
+  return null;
+}
+function badReason(tk){
+  const d=String(tk).replace(/\D/g,"");
+  if(!d)return "is not a number";
+  if(d.length<11&&/^09/.test(d))return `is missing ${11-d.length} digit${11-d.length>1?"s":""} (has ${d.length}, needs 11)`;
+  if(d.length<10)return `is too short (has ${d.length} digits, needs 11)`;
+  if(d.length>11)return `has ${d.length} digits, the maximum is 11`;
+  return "is not a valid Philippine mobile number (it should start with 09)";
+}
+function cleanNum(v){let d=v.replace(/\D/g,"");if(/^639/.test(d)&&d.length>=12)d="0"+d.slice(2);if(d[0]==="9")d="0"+d;return d.slice(0,11)}
+function fmt(n){return String(n).replace(/^(\d{4})(\d{3})(\d{4})$/,"$1-$2-$3")}
+function dayKey(d){const p=x=>String(x).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+function sortedSims(){return sims.slice().sort((a,b)=>(+b.id||0)-(+a.id||0))}
+function viewMode(){return innerWidth>=900?"comp":"mob"}
+function carrierOpts(sel){
+  const list=CARRIERS.slice();if(sel&&!list.includes(sel))list.push(sel);
+  return `<option value="">— Choose SIM —</option>`+list.map(c=>`<option value="${esc(c)}"${c===sel?" selected":""}>${esc(c)}</option>`).join("");
+}
+function copyText(t){
+  const ok=()=>toast("Copied: "+fmt(t));
+  const fb=()=>{const a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();try{document.execCommand("copy")}catch(e){}a.remove();ok()};
+  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
+}
+function simColorOf(s){const k=brand.simColors[s.carrier];return (SIMCOLORS[k]||SIMCOLORS.ink)[isDark?"dark":"light"]}
+function closeModal(){modalLock=false;$("modal").style.display="none"}
+
+function sitesFor(s){
+  const out=[];
+  cats.forEach(c=>c[1].forEach(x=>{if(!s.hide.includes(x[0]))out.push({cat:c[0],name:x[0],price:x[1]})}));
+  s.extra.forEach(e=>{if(!out.some(o=>o.name===e.name))out.push({cat:e.cat||"OTHER",name:e.name,price:e.price})});
+  return out;
+}
+function allColumns(){
+  const cols=[];
+  const add=(cat,name,price)=>{if(!cols.some(c=>c.name===name))cols.push({cat,name,price})};
+  cats.forEach(c=>c[1].forEach(x=>add(c[0],x[0],x[1])));
+  sims.forEach(s=>s.extra.forEach(e=>add(e.cat||"OTHER",e.name,e.price)));
+  return cols;
+}
+function priceOf(s,name){const f=sitesFor(s).find(x=>x.name===name);return f?f.price:0}
+function usedCount(s){const names=sitesFor(s).map(x=>x.name);return s.used.filter(u=>names.includes(u)).length}
+function usableSim(s){return s.active&&!s.barred&&!s.netBad}
+function earnTotal(){return sims.reduce((n,s)=>n+sitesFor(s).filter(x=>s.used.includes(x.name)).reduce((m,x)=>m+x.price,0),0)}
+
+function slotBox(s){
+  const k=NET[(s.carrier||"").trim().toLowerCase()];
+  return s.slot
+    ? `<span class="slotb"${k?` style="border-color:${k[0]}"`:""} data-act="edit" title="Tap to edit">${esc(s.slot)}</span>`
+    : `<span class="slotb q" data-act="edit" title="No box yet, tap to set">?</span>`;
+}
+function netBadge(c){
+  c=(c||"").trim();if(!c)return"";
+  const k=NET[c.toLowerCase()]||["#6b7280","#fff"];
+  return `<span class="nb" style="background:${k[0]};color:${k[1]}">${esc(c)}</span>`;
+}
+function statusBadges(s){
+  let h="";
+  if(!s.active)h+=`<span class="nb" style="background:#6b7280;color:#fff">⚪ Inactive</span>`;
+  if(s.barred)h+=`<span class="nb" style="background:#dc2626;color:#fff">🚫 Barred</span>`;
+  if(s.netBad)h+=`<span class="nb" style="background:#f97316;color:#fff">📵 Network down</span>`;
+  return h;
+}
+function statusIcons(s){return (!s.active?"⚪":"")+(s.barred?"🚫":"")+(s.netBad?"📵":"")}
+function noteHTML(s){
+  const n=(s.note||"").trim();
+  if(!n)return "";
+  const short=n.length>NOTE_PREVIEW?n.slice(0,NOTE_PREVIEW)+"…":n;
+  return `<span class="simnote" data-act="fullnote" data-id="${s.id}" title="Tap to read the full note"><b>Note:</b> ${esc(short)}</span>`;
+}
+function chipHTML(s){
+  return `<span class="chip" data-open="${s.id}">${s.slot?"📦 <b>"+esc(s.slot)+"</b> · ":""}<span style="color:${simColorOf(s)}">${fmt(s.number)}</span>`
+    +`${s.carrier?" · "+esc(s.carrier):""}${statusIcons(s)?" "+statusIcons(s):""} `
+    +`<span data-copy="${s.number}" title="Copy">📋</span></span>`;
+}
+
+function parseQuery(raw){
+  const q=String(raw||"").trim().toLowerCase();
+  let m=q.match(/^box\s*#?\s*(\d+)$/);
+  if(m)return {mode:"box",val:m[1]};
+  m=q.match(/^sim\s+(.+)$/);
+  if(m)return {mode:"sim",val:m[1].trim()};
+  return {mode:"auto",val:q};
+}
+function matchSim(s,p){
+  if(!p||!p.val)return true;
+  if(p.mode==="box")return String(s.slot)===p.val;
+  if(p.mode==="sim")return (s.carrier||"").toLowerCase().includes(p.val);
+  const qd=p.val.replace(/[\s-]/g,"");
+  return (qd&&String(s.number).includes(qd))||(s.carrier||"").toLowerCase().includes(p.val)||String(s.slot)===p.val;
+}
+
+function makeSim(num,bx,carrier,fl){
+  return normSim({id:Date.now()+Math.random()+Math.random(),number:num,slot:bx,carrier:(carrier||"").trim(),used:[],
+    barred:!!fl.barred,netBad:!!fl.netBad,active:fl.active!==false,note:""});
+}
+function showIssues(issues,valid,onContinue){
+  const dups=issues.filter(i=>i.type==="dup"),bad=issues.filter(i=>i.type==="bad");
+  const total=dups.length+bad.length;
+  let h=`<h2>⚠️ Some numbers were not added</h2>`;
+  if(dups.length){
+    h+=`<p><b>Already in the list:</b></p><ul>${dups.map(i=>`<li>${esc(fmt(i.num))} is already in the list</li>`).join("")}</ul>`;
+  }
+  if(bad.length){
+    h+=`<p><b>Not valid:</b></p><ul>${bad.map(i=>`<li>${esc(i.tk)} ${esc(i.msg)}</li>`).join("")}</ul>`;
+  }
+  if(valid.length){
+    h+=`<p>Would you continue without ${total===1?"this number":"these numbers"}? <b>${valid.length}</b> new number${valid.length>1?"s":""} will be added. Numbers already in the list will not be changed.</p>`
+      +`<div class="row"><button id="iGo">Continue</button><button class="alt" id="iNo">Cancel</button></div>`;
+  }else{
+    h+=`<p>Nothing new to add. Fix the numbers above and try again.</p><div class="row"><button id="iNo">OK</button></div>`;
+  }
+  $("mbox").innerHTML=h;
+  $("modal").style.display="flex";
+  $("iNo").onclick=closeModal;
+  if(valid.length)$("iGo").onclick=()=>{closeModal();onContinue()};
+}
+function addBulk(){
+  const text=$("numIn").value;
+  const tokens=text.split(/[\s,;]+/).filter(Boolean);
+  if(!tokens.length){toast("Type or paste a number first");return}
+  const bx=$("bxIn").value.trim();
+  if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank");return}
+  const fl=flags(),carrier=$("carrier").value;
+  const seen=new Set(sims.map(s=>s.number));
+  const valid=[],issues=[],badTokens=[];
+  tokens.forEach(tk=>{
+    const n=normNum(tk);
+    if(!n){issues.push({type:"bad",tk,msg:badReason(tk)});badTokens.push(tk);return}
+    if(seen.has(n)){issues.push({type:"dup",num:n});return}
+    seen.add(n);valid.push(n);
+  });
+  const commit=()=>{
+    valid.forEach(n=>sims.push(makeSim(n,bx,carrier,fl)));
+    saveAll();render();
+    toast(`Added ${valid.length} SIM${valid.length===1?"":"s"}`);
+    $("numIn").value=badTokens.join(" ");
+    countInput();
+  };
+  if(!issues.length){commit();return}
+  if(!valid.length){showIssues(issues,valid,()=>{});return}
+  showIssues(issues,valid,commit);
+}
+function flags(){return {active:$("fActive").checked,barred:$("fBarred").checked,netBad:$("fNet").checked}}
+function countInput(){
+  const toks=$("numIn").value.split(/[\s,;]+/).filter(Boolean);
+  const ok=toks.filter(t=>normNum(t)).length;
+  $("cnt").textContent=ok;$("bad").textContent=toks.length-ok;
+}
+
+function editSim(id){
+  const s=sims.find(x=>x.id===id);if(!s)return;
+  $("mbox").innerHTML=`<h2>✏️ Edit SIM</h2>
+  <div class="mu">Phone number (11 digits)</div><input type="text" id="eNum" inputmode="numeric" maxlength="14" style="width:100%;margin-bottom:10px">
+  <div class="mu">Network / SIM</div><select id="eNet" style="width:100%;margin-bottom:10px">${carrierOpts(s.carrier)}</select>
+  <div class="mu">Box #</div><input type="number" id="eSlot" min="1" style="width:100%;margin-bottom:12px">
+  <div class="mu">Note (optional, shows on the card)</div><textarea id="eNote" maxlength="300" placeholder="e.g. This SIM is for personal use only" style="width:100%;min-height:64px;margin-bottom:12px"></textarea>
+  <div class="mu" style="margin-bottom:4px">Status</div>
+  <label class="site"><input type="checkbox" id="eActive"><span>✅ Active</span></label>
+  <label class="site"><input type="checkbox" id="eBarred"><span>🚫 Barred</span></label>
+  <label class="site"><input type="checkbox" id="eNetBad"><span>📵 Network not working</span></label>
+  <div class="row" style="margin-top:12px"><button id="eOk">Save</button><button class="alt" id="eCancel">Cancel</button></div>`;
+  $("eNum").value=fmt(s.number);
+  $("eSlot").value=s.slot||"";
+  $("eNote").value=s.note||"";
+  $("eActive").checked=s.active;
+  $("eBarred").checked=s.barred;
+  $("eNetBad").checked=s.netBad;
+  $("modal").style.display="flex";
+  $("eNum").addEventListener("input",()=>{$("eNum").value=fmt(cleanNum($("eNum").value))});
+  $("eCancel").onclick=closeModal;
+  $("eOk").onclick=()=>{
+    const n=normNum($("eNum").value);
+    if(!n){toast("Not a valid number: "+badReason($("eNum").value));return}
+    const bx=$("eSlot").value.trim();
+    if(bx&&(!/^\d+$/.test(bx)||+bx<1)){toast("Box must be a number 1 or higher, or leave blank");return}
+    if(sims.some(x=>x!==s&&x.number===n)){toast(fmt(n)+" is already in the list");return}
+    s.number=n;s.carrier=$("eNet").value;s.slot=bx;
+    s.note=$("eNote").value.trim();
+    s.active=$("eActive").checked;s.barred=$("eBarred").checked;s.netBad=$("eNetBad").checked;
+    saveAll();render();closeModal();toast("Saved changes");
+  };
+}
+function showFullNote(id){
+  const s=sims.find(x=>String(x.id)===String(id));
+  if(!s||!s.note)return;
+  $("mbox").innerHTML=`<h2>📝 Note for ${esc(fmt(s.number))}</h2>
+    <div class="fullnote">${esc(s.note)}</div>
+    <div class="row"><button id="nClose">Close</button></div>`;
+  $("modal").style.display="flex";
+  $("nClose").onclick=closeModal;
+}
+function deleteSim(s){
+  if(confirm("Delete "+fmt(s.number)+"?")){sims=sims.filter(x=>x!==s);saveAll();render()}
+}
+function toggleSite(s,site,on){
+  const has=s.used.includes(site);
+  if(on&&!has){
+    s.used.push(site);
+    log.push({d:dayKey(new Date()),t:Date.now(),num:s.number,site,price:priceOf(s,site)});
+  }else if(!on&&has){
+    s.used=s.used.filter(u=>u!==site);
+    for(let i=log.length-1;i>=0;i--){if(log[i].num===s.number&&log[i].site===site){log.splice(i,1);break}}
+  }
+  saveAll();
+}
+
+function greet(){
+  const g=$("greet"),h=new Date().getHours(),tm=h<12?"morning":h<18?"afternoon":"evening";
+  let av=0,nums=0;
+  sims.filter(usableSim).forEach(s=>{const left=sitesFor(s).length-usedCount(s);if(left>0){nums++;av+=left}});
+  g.style.display="block";
+  g.innerHTML=`Hello, good ${tm}${userName?", <b>"+esc(userName)+"</b>":""}! `+
+    (sims.length?`You have <b>${av}</b> sites available across <b>${nums}</b> usable numbers for OTP today.`:"Add your first SIM to start.");
+}
+
+function cardHTML(s){
+  const eff=sitesFor(s),used=usedCount(s);
+  let h=`<div class="card ${openId===s.id?"open":""}" data-id="${s.id}">`
+    +`<div class="head" data-act="toggle"><div>`
+    +`<div class="num" style="color:${simColorOf(s)}">${fmt(s.number)} <button class="alt" data-act="copy" style="padding:4px 9px;font-size:13px">📋 Copy</button></div>`
+    +`<div class="mu">${netBadge(s.carrier)}${statusBadges(s)}${used}/${eff.length} sites used</div></div></div>`
+    +noteHTML(s)
+    +`<div class="row"><span class="mu">Box</span>${slotBox(s)}`
+    +`<button class="alt" data-act="edit" style="padding:6px 9px" title="Edit">✏️</button>`
+    +`<button class="del" data-act="del">🗑</button></div>`;
+  h+=`<div class="sites">`;
+  if(openId===s.id){
+    const groups=[];
+    eff.forEach(x=>{let g=groups.find(g=>g.cat===x.cat);if(!g){g={cat:x.cat,items:[]};groups.push(g)}g.items.push(x)});
+    groups.forEach(g=>{
+      h+=`<div class="cat">${esc(g.cat)}</div>`;
+      g.items.forEach(x=>{
+        const on=s.used.includes(x.name);
+        h+=`<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x.name)}" ${on?"checked":""}>`
+          +`<span>${esc(x.name)}</span><span class="p">₱${x.price}</span></label>`;
+      });
+    });
+  }
+  return h+`</div></div>`;
+}
+function renderInv(){
+  greet();
+  const arr=sortedSims();
+  $("invList").innerHTML=arr.length?arr.map(cardHTML).join("")
+    :`<div class="mu" style="text-align:center;padding:30px">No SIMs yet. Type or scan a number above.</div>`;
+}
+
+function renderLookup(){
+  const raw=$("q").value,p=parseQuery(raw);
+  let h="";
+  if(!raw.trim()){
+    h=`<div class="mu" style="text-align:center;padding:30px">Try a Number, Box 30, Sim TNT or a Site Name.</div>`;
+  }else if(p.mode==="box"){
+    const inBox=sims.filter(s=>s.slot===p.val);
+    h+=`<div class="card"><div class="head" style="cursor:default"><b>📦 Box ${esc(p.val)}</b><span class="pill">${inBox.length} SIM${inBox.length===1?"":"s"}</span></div><div style="margin-top:8px">`
+      +(inBox.length?inBox.map(chipHTML).join(""):`<span class="mu">Empty box, no SIM yet</span>`)+`</div></div>`;
+  }else if(p.mode==="sim"){
+    const hits=sims.filter(s=>matchSim(s,p));
+    h+=`<div class="card"><div class="head" style="cursor:default"><b>📶 ${esc(p.val.toUpperCase())}</b><span class="pill">${hits.length}</span></div><div style="margin-top:8px">`
+      +(hits.length?hits.map(chipHTML).join(""):`<span class="mu">No SIM with that network</span>`)+`</div></div>`;
+  }else{
+    if(p.val.length>=2){
+      allColumns().filter(c=>c.name.toLowerCase().includes(p.val)).forEach(c=>{
+        const av=sims.filter(s=>usableSim(s)&&!s.used.includes(c.name)&&sitesFor(s).some(x=>x.name===c.name));
+        h+=`<div class="card"><div class="head" style="cursor:default"><b>${esc(c.name)}</b><span class="pill">₱${c.price} · ${av.length} available</span></div><div style="margin-top:8px">`
+          +(av.length?av.map(chipHTML).join(""):`<span class="mu">No available number</span>`)+`</div></div>`;
+      });
+    }
+    if(/\d/.test(p.val)){
+      const hits=sims.filter(s=>matchSim(s,p));
+      h+=`<div class="card"><b>🔢 Matching numbers</b> <span class="pill">${hits.length}</span><div style="margin-top:8px">`
+        +(hits.length?hits.map(chipHTML).join(""):`<span class="mu">No match</span>`)+`</div></div>`;
+    }
+  }
+  $("lookRes").innerHTML=h;
+}
+
+function uniqueSearches(onlyToday){
+  const today=dayKey(new Date());
+  const map=new Map();
+  for(let i=searches.length-1;i>=0;i--){
+    const x=searches[i];
+    if(onlyToday && dayKey(new Date(x.t))!==today) continue;
+    if(!map.has(x.q)) map.set(x.q,{q:x.q,t:x.t,count:0});
+    map.get(x.q).count++;
+  }
+  return [...map.values()];
+}
+function histItem(item){
+  const p=parseQuery(item.q);
+  const hits=sims.filter(s=>matchSim(s,p));
+  const when=new Date(item.t).toLocaleString();
+  const chips=hits.slice(0,2).map(chipHTML).join("");
+  return `<div class="hitem" data-hq="${esc(item.q)}">
+    <div class="hq">🔎 ${esc(item.q)}</div>
+    <div class="hmeta">${hits.length} match${hits.length===1?"":"es"} · searched ${item.count}× · last ${esc(when)}</div>
+    ${chips?`<div class="hchips">${chips}${hits.length>2?` <span class="mu">+${hits.length-2} more</span>`:""}</div>`:""}
+  </div>`;
+}
+function renderHist(){
+  const today=uniqueSearches(true);
+  const allMap={};
+  searches.forEach(x=>allMap[x.q]=(allMap[x.q]||0)+1);
+  const top=Object.entries(allMap).sort((a,b)=>b[1]-a[1]).slice(0,10)
+    .map(([q,c])=>({q,count:c,t:(searches.filter(x=>x.q===q).pop()||{t:0}).t}));
+  const recent=uniqueSearches(false).slice(0,20);
+  const sec=(title,arr,empty)=>`<div class="hsec">${title}</div>`+(arr.length?arr.map(histItem).join(""):`<div class="mu" style="padding:6px 2px">${empty}</div>`);
+  $("p-hist").innerHTML=`
+    <div class="card"><b>🕘 Search history</b>
+      <div class="mu" style="margin-top:4px">Tap any search to run it again in Lookup. History is kept on this phone only.</div>
+    </div>
+    ${sec("Searched today",today,"Nothing searched today yet.")}
+    ${sec("Most searched",top,"No searches yet.")}
+    ${sec("Recent",recent,"No searches yet.")}
+    <div class="row" style="margin-top:14px"><button class="alt" id="hClear">🗑 Clear history</button></div>`;
+  $("hClear").onclick=()=>{
+    if(!confirm("Clear all search history on this phone? Your SIM list is not affected.")) return;
+    searches=[];saveSearches();renderHist();toast("Search history cleared");
+  };
+}
+function runSearch(q){
+  $("q").value=q;
+  setTab("look");
+  renderLookup();
+}
+
+function mobCard(s){
+  const eff=sitesFor(s),used=usedCount(s);
+  const open=nlShow||nlOpen.has(s.id);
+  let sites="";
+  if(open){
+    const groups=[];
+    eff.forEach(x=>{let g=groups.find(g=>g.cat===x.cat);if(!g){g={cat:x.cat,items:[]};groups.push(g)}g.items.push(x)});
+    sites=`<div class="sg" style="margin-top:8px">`
+      +groups.map(g=>`<div class="cat">${esc(g.cat)}</div>`+g.items.map(x=>{
+          const on=s.used.includes(x.name);
+          return `<label class="site ${on?"on":""}"><input type="checkbox" data-act="chk" data-site="${esc(x.name)}" ${on?"checked":""}>`
+            +`<span>${esc(x.name)}</span><span class="p">₱${x.price}</span></label>`;
+        }).join("")).join("")
+      +`</div>`;
+  }
+  const btn=nlShow?"":`<button class="alt" data-act="nlCard" style="margin-top:8px;padding:6px 10px;font-size:13px">${open?"▲ Hide sites":"▼ Show sites ("+eff.length+")"}</button>`;
+  return `<div class="card" data-id="${s.id}">`
+    +`<div class="head" style="cursor:default"><div>`
+    +`<div class="num" style="color:${simColorOf(s)}"><span data-copy="${s.number}" style="cursor:pointer">${fmt(s.number)}</span></div>`
+    +`<div class="mu">${netBadge(s.carrier)}${statusBadges(s)}${used}/${eff.length} sites used</div></div>`
+    +`<div class="row"><span class="mu">Box</span>${slotBox(s)}</div></div>`
+    +btn+sites
+    +`</div>`;
+}
+function compTable(arr,cols,groups){
+  const head1=`<tr><th rowspan="2" class="c-box">Box</th><th rowspan="2" class="c-num">Number</th><th rowspan="2" class="c-sim">SIM</th>`
+    +groups.map(g=>`<th colspan="${g.n}" class="grp">${esc(g.cat)}</th>`).join("")
+    +`<th rowspan="2" class="c-used">Used</th></tr>`;
+  const head2=cols.length?`<tr>`+cols.map(c=>`<th class="sv"><span class="vtxt">${esc(c.name)} ₱${c.price}</span></th>`).join("")+`</tr>`:"";
+  const rows=arr.map(s=>{
+    const names=sitesFor(s).map(x=>x.name);
+    return `<tr data-id="${s.id}">`
+      +`<td>${slotBox(s)}</td>`
+      +`<td><b data-copy="${s.number}" style="color:${simColorOf(s)}">${fmt(s.number)}</b></td>`
+      +`<td class="sm">${esc(s.carrier||"—")} ${statusIcons(s)}</td>`
+      +cols.map(c=>{
+        if(!names.includes(c.name))return `<td class="na">—</td>`;
+        const on=s.used.includes(c.name);
+        return `<td><label class="cc"><input type="checkbox" data-act="chk" data-site="${esc(c.name)}" ${on?"checked":""}></label></td>`;
+      }).join("")
+      +`<td>${usedCount(s)}/${names.length}</td></tr>`;
+  }).join("");
+  return `<table><colgroup><col class="c-box"><col class="c-num"><col class="c-sim">${cols.map(()=>"<col>").join("")}<col class="c-used"></colgroup>`
+    +`<thead>${head1}${head2}</thead><tbody>${rows}</tbody></table>`;
+}
+function renderSheet(){
+  const view=viewMode();
+  const p=parseQuery($("nlq").value);
+  const arr=sortedSims().filter(s=>matchSim(s,p));
+  $("nlAll").textContent=nlShow?"🙈 Hide all site boxes":"👁 Show all site boxes";
+  $("nlAll").className=nlShow?"":"alt";
+  const sh=$("sheet"),sy=window.scrollY;
+  if(!arr.length){
+    sh.className="";
+    sh.innerHTML=`<div class="mu" style="text-align:center;padding:24px">No SIMs to show.</div>`;
+    return;
+  }
+  if(view==="mob"){
+    sh.className="";
+    sh.innerHTML=arr.map(mobCard).join("");
+  }else{
+    const cols=nlShow?allColumns():[];
+    const groups=[];
+    cols.forEach(c=>{const g=groups[groups.length-1];if(g&&g.cat===c.cat)g.n++;else groups.push({cat:c.cat,n:1})});
+    sh.className="nl-comp";
+    sh.innerHTML=compTable(arr,cols,groups);
+  }
+  window.scrollTo(0,sy);
+}
+
+function stat(label,val){return `<div class="stat"><span class="mu">${label}</span><b>${val}</b></div>`}
+function bars(items,max){
+  if(!items.length)return `<div class="mu">No data yet</div>`;
+  max=max||Math.max(1,...items.map(i=>i[1]));
+  return items.map(([k,v])=>`<div class="brow"><span>${esc(k)}</span><div class="track"><div style="width:${Math.round(v/max*100)}%"></div></div><b>${v}</b></div>`).join("");
+}
+function renderAnalytics(){
+  const today=dayKey(new Date());
+  const tl=log.filter(l=>l.d===today);
+  const usable=sims.filter(usableSim);
+  const doneTotal=sims.reduce((n,s)=>n+usedCount(s),0);
+  const earnToday=tl.reduce((n,l)=>n+(+l.price||0),0);
+  const avail=usable.reduce((n,s)=>n+sitesFor(s).length-usedCount(s),0);
+  const cnt={};sims.forEach(s=>s.used.forEach(u=>cnt[u]=(cnt[u]||0)+1));
+  const topAll=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tcnt={};tl.forEach(l=>tcnt[l.site]=(tcnt[l.site]||0)+1);
+  const topToday=Object.entries(tcnt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push([d.toLocaleDateString(undefined,{weekday:"short"}),log.filter(l=>l.d===dayKey(d)).length])}
+  const car={};sims.forEach(s=>{const c=(s.carrier||"").trim()||"Unknown";car[c]=(car[c]||0)+1});
+  const boxes={};sims.forEach(s=>{if(s.slot)boxes[s.slot]=(boxes[s.slot]||0)+1});
+  const topBox=Object.entries(boxes).sort((a,b)=>b[1]-a[1])[0];
+  $("p-ana").innerHTML=`<div class="grid">
+    ${stat("Done today",tl.length)}${stat("Earned today","₱"+earnToday)}${stat("Total done",doneTotal)}${stat("Total earned","₱"+earnTotal())}
+    ${stat("SIMs",sims.length)}${stat("Active",sims.filter(s=>s.active).length)}${stat("Barred",sims.filter(s=>s.barred).length)}${stat("Network down",sims.filter(s=>s.netBad).length)}
+    ${stat("Usable now",usable.length)}${stat("Open slots",avail)}${stat("Boxes used",Object.keys(boxes).length)}${stat("Busiest box",topBox?"Box "+esc(topBox[0])+" ("+topBox[1]+")":"—")}
+  </div>
+  <div class="card"><b>⚡ Fastest selling today</b><div style="margin-top:8px">${bars(topToday)}</div></div>
+  <div class="card"><b>🏆 Fastest selling overall</b><div style="margin-top:8px">${bars(topAll)}</div></div>
+  <div class="card"><b>📅 Last 7 days</b><div style="margin-top:8px">${bars(days)}</div></div>
+  <div class="card"><b>📶 SIM networks</b><div style="margin-top:8px">${bars(Object.entries(car).sort((a,b)=>b[1]-a[1]))}</div></div>`;
+}
+
+function renderBrand(){
+  const pals=Object.entries(PALETTES).map(([k,p])=>`<button class="pal ${brand.palette===k?"on":""}" data-set="palette" data-v="${k}"><span class="sw" style="background:${p.ac}"></span>${p.name}</button>`).join("");
+  const modes=[["system","🖥️ System"],["light","☀️ Light"],["dark","🌙 Dark"]].map(([k,l])=>`<button class="pal ${brand.mode===k?"on":""}" data-set="mode" data-v="${k}">${l}</button>`).join("");
+  const carOpts=CARRIERS.map(c=>`<option value="${c}"${c===brandCar?" selected":""}>${c}</option>`).join("");
+  const curSim=brand.simColors[brandCar]||"ink";
+  const simChips=Object.entries(SIMCOLORS).map(([k,c])=>`<button class="pal ${curSim===k?"on":""}" data-simk="${k}"><span class="sw" style="background:${c.light}"></span>${c.name}</button>`).join("");
+  const simList=CARRIERS.map(c=>{const k=brand.simColors[c]||"ink";return `<span class="chip"><span class="sw" style="background:${SIMCOLORS[k].light};vertical-align:middle"></span> ${c}: ${SIMCOLORS[k].name}</span>`}).join("");
+  const cols=allColumns();
+  const catOpts=cats.map(c=>`<option value="${esc(c[0])}">${esc(c[0])}</option>`).join("")+`<option value="__new">➕ New category</option>`;
+  const remOpts=cols.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join("");
+  const selList=sortedSims().map(s=>`<label class="site"><input type="checkbox" data-bsel="${s.id}"><span style="color:${simColorOf(s)}">${fmt(s.number)}</span><span class="mu">${s.slot?"Box "+esc(s.slot):"no box"}</span></label>`).join("")||`<div class="mu">No SIMs yet</div>`;
+  const catalog=cats.map(c=>`<div class="cat">${esc(c[0])}</div><div>${c[1].map(x=>`<span class="chip">${esc(x[0])} <b>₱${x[1]}</b></span>`).join("")}</div>`).join("");
+  $("p-brand").innerHTML=`
+  <div class="card"><b>🎨 Theme</b>
+    <div class="mu" style="margin:8px 0 6px">Color style (soft, easy on the eyes)</div><div class="seg">${pals}</div>
+    <div class="mu" style="margin:12px 0 6px">Mode</div><div class="seg">${modes}</div>
+  </div>
+  <div class="card"><b>🔢 SIM number color</b>
+    <div class="mu" style="margin:8px 0 4px">Choose SIM network</div>
+    <select id="scCar" style="width:100%">${carOpts}</select>
+    <div class="mu" style="margin:12px 0 6px">Choose color for ${esc(brandCar)}</div>
+    <div class="seg">${simChips}</div>
+    <div class="mu" style="margin:12px 0 6px">Current colors</div>
+    <div>${simList}</div>
+  </div>
+  <div class="card"><b>🧩 Site list editor</b>
+    <div class="mu" style="margin:8px 0 4px">What do you want to do?</div>
+    <select id="bAct" style="width:100%"><option value="add">➕ Add a site</option><option value="rem">🗑 Remove a site</option></select>
+    <div id="bAddF">
+      <input id="bName" type="text" placeholder="Site name, e.g. TikTok Shop" style="width:100%;margin-top:8px">
+      <div class="row" style="margin-top:8px">
+        <select id="bCat" style="flex:1">${catOpts}</select>
+        <input id="bPrice" type="number" min="0" placeholder="₱" style="width:90px">
+      </div>
+      <input id="bNewCat" type="text" placeholder="New category name" style="width:100%;margin-top:8px;display:none">
+    </div>
+    <div id="bRemF" style="display:none"><select id="bRemSel" style="width:100%;margin-top:8px">${remOpts}</select></div>
+    <div class="mu" style="margin:12px 0 4px">Apply to</div>
+    <label class="site"><input type="radio" name="bScope" value="all" checked><span>All SIMs (changes the main list)</span></label>
+    <label class="site"><input type="radio" name="bScope" value="sel"><span>Only the SIMs I check</span></label>
+    <div id="bSelF" style="display:none;max-height:240px;overflow:auto;border:1px solid var(--ln);border-radius:8px;padding:6px;margin-top:6px">
+      <label class="site"><input type="checkbox" id="bSelAll"><span><b>Select all</b></span></label>${selList}
+    </div>
+    <div class="row" style="margin-top:12px"><button data-act="applySite">Apply</button></div>
+  </div>
+  <div class="card"><b>📋 Current list</b><div style="margin-top:8px">${catalog}</div></div>`;
+}
+
+function render(){
+  $("stats").textContent=sims.length+" SIMs · ₱"+earnTotal()+" done";
+  document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");
+  const R={inv:renderInv,look:renderLookup,num:renderSheet,ana:renderAnalytics,hist:renderHist};
+  if(R[tab])R[tab]();
+}
+function setTab(t){
+  tab=t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id==="p-"+t));
+  if(t==="brand")renderBrand();
+  else render();
+  window.scrollTo(0,0);
+}
+
+function applySiteChange(){
+  const act=$("bAct").value;
+  const scope=document.querySelector('input[name="bScope"]:checked').value;
+  const name=$("bName").value.trim();
+  const catSel=$("bCat").value;
+  const cat=(catSel==="__new"?$("bNewCat").value.trim():catSel).toUpperCase()||"OTHER";
+  const price=Math.max(0,+$("bPrice").value||0);
+  const remName=$("bRemSel").value;
+  const target=act==="add"?name:remName;
+  if(act==="add"&&!name){toast("Type a site name first");return}
+  if(act==="add"&&catSel==="__new"&&!$("bNewCat").value.trim()){toast("Type the new category name");return}
+  if(!target){toast("Nothing to remove");return}
+  let targets=[];
+  if(scope==="sel"){
+    const ids=[...document.querySelectorAll("[data-bsel]:checked")].map(x=>String(x.dataset.bsel));
+    targets=sims.filter(s=>ids.includes(String(s.id)));
+    if(!targets.length){toast("Check at least one SIM");return}
+  }
+  if(act==="add"){
+    if(scope==="all"){
+      cats.forEach(c=>c[1]=c[1].filter(x=>x[0]!==name));
+      let c=cats.find(c=>c[0]===cat);if(!c){c=[cat,[]];cats.push(c)}
+      c[1].push([name,price]);
+      sims.forEach(s=>{s.extra=s.extra.filter(e=>e.name!==name);s.hide=s.hide.filter(n=>n!==name)});
+    }else{
+      targets.forEach(s=>{
+        s.hide=s.hide.filter(n=>n!==name);
+        if(!cats.some(c=>c[1].some(x=>x[0]===name))){
+          s.extra=s.extra.filter(e=>e.name!==name);
+          s.extra.push({name,price,cat});
+        }
+      });
+    }
+    toast(`Added ${name}`+(scope==="sel"?` to ${targets.length} SIM(s)`:" to all SIMs"));
+  }else{
+    if(scope==="all"){
+      cats.forEach(c=>c[1]=c[1].filter(x=>x[0]!==remName));
+      cats=cats.filter(c=>c[1].length);
+      sims.forEach(s=>s.extra=s.extra.filter(e=>e.name!==remName));
+    }else{
+      targets.forEach(s=>{
+        s.extra=s.extra.filter(e=>e.name!==remName);
+        if(cats.some(c=>c[1].some(x=>x[0]===remName))&&!s.hide.includes(remName))s.hide.push(remName);
+      });
+    }
+    toast(`Removed ${remName}`+(scope==="sel"?` from ${targets.length} SIM(s)`:" from all SIMs"));
+  }
+  saveAll();render();renderBrand();
+}
+
+function beginSession(){
+  let needRestore=false;try{needRestore=localStorage.getItem(KEYRESTORE)==="1"}catch(e){}
+  if(needRestore)cloudRestorePrompt(afterLogin);
+  else afterLogin();
+}
+function afterLogin(){
+  if(!userName)askName(true);
+}
+function startTutorial(){
+  tutI=0;
+  tutStep();
+}
+function tutStep(){
+  const s=TUT[tutI],last=tutI===TUT.length-1;
+  modalLock=true;
+  $("mbox").innerHTML=`<div class="mu">Step ${tutI+1} of ${TUT.length}</div>
+    <div style="font-size:34px;margin:6px 0">${s.icon}</div>
+    <h2>${s.t}</h2><p>${s.d}</p>
+    <div class="row" style="margin-top:14px;flex-wrap:wrap">
+      ${tutI>0?'<button class="alt" id="tBack">Back</button>':''}
+      <button class="alt" id="tSkip">Close</button>
+      <button id="tNext" style="margin-left:auto">${last?"Finish":"Next"}</button>
+    </div>`;
+  $("modal").style.display="flex";
+  if(tutI>0)$("tBack").onclick=()=>{tutI--;tutStep()};
+  $("tSkip").onclick=()=>closeModal();
+  $("tNext").onclick=()=>{
+    if(last)closeModal();
+    else{tutI++;tutStep()}
+  };
+}
+function askName(initial){
+  if(initial)modalLock=true;
+  $("mbox").innerHTML=`<h2>${initial?"👋 What is your name?":"✏️ Change name"}</h2><p>Ano ang pangalan mo?</p>
+  <input type="text" id="nm" placeholder="Your name" style="width:100%">
+  <div class="row" style="margin-top:10px"><button id="nmok">Save</button><button class="alt" id="nmskip">${initial?"Skip":"Cancel"}</button></div>`;
+  $("nm").value=userName||"";
+  $("modal").style.display="flex";
+  const done=v=>{saveName(v.trim());closeModal();render()};
+  $("nmok").onclick=()=>done($("nm").value);
+  $("nmskip").onclick=()=>{closeModal();render()};
+  $("nm").addEventListener("keydown",e=>{if(e.key==="Enter")$("nmok").click()});
+}
+
+function b64(buf){
+  const u=new Uint8Array(buf);let s="";
+  for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+  return btoa(s);
+}
+function unb64(s){
+  const bin=atob(s),u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  return u;
+}
+async function deriveKey(pw,salt){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptText(pw,text){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pw,salt);
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(text));
+  return JSON.stringify({v:1,s:b64(salt),i:b64(iv),d:b64(ct)});
+}
+async function decryptText(pw,payload){
+  const p=JSON.parse(payload);
+  const key=await deriveKey(pw,unb64(p.s));
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(p.i)},key,unb64(p.d));
+  return new TextDecoder().decode(pt);
+}
+async function sbSignIn(email,pw){
+  let r;
+  try{
+    r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{
+      method:"POST",
+      headers:{apikey:SB_ANON,"Content-Type":"application/json"},
+      body:JSON.stringify({email,password:pw})
+    });
+  }catch(e){throw new Error("No internet connection. Connect and try again.")}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.access_token)throw new Error("Email or password is wrong.");
+  return {token:j.access_token,uid:j.user.id};
+}
+function sbHeaders(token){
+  return {apikey:SB_ANON,Authorization:"Bearer "+token,"Content-Type":"application/json"};
+}
+async function cloudUpload(email,pw,text){
+  const s=await sbSignIn(email,pw);
+  const payload=await encryptText(pw,text);
+  let r;
+  try{
+    r=await fetch(SB_URL+"/rest/v1/backups",{
+      method:"POST",
+      headers:{...sbHeaders(s.token),Prefer:"resolution=merge-duplicates"},
+      body:JSON.stringify({user_id:s.uid,payload,updated_at:new Date().toISOString()})
+    });
+  }catch(e){throw new Error("No internet connection. Connect and try again.")}
+  if(!r.ok)throw new Error("Upload failed. Check that the backups table exists in Supabase.");
+}
+async function cloudDownload(email,pw){
+  const s=await sbSignIn(email,pw);
+  let r;
+  try{
+    r=await fetch(SB_URL+"/rest/v1/backups?select=payload&user_id=eq."+encodeURIComponent(s.uid),{headers:sbHeaders(s.token)});
+  }catch(e){throw new Error("No internet connection. Connect and try again.")}
+  if(!r.ok)throw new Error("Could not reach the cloud. Try again.");
+  const rows=await r.json();
+  if(!rows.length)return null;
+  try{return JSON.parse(await decryptText(pw,rows[0].payload))}
+  catch(e){throw new Error("Could not open this backup with that password.")}
+}
+
+function askConfirm({title,bodyHtml,okLabel,danger}){
+  return new Promise(resolve=>{
+    modalLock=true;
+    $("mbox").innerHTML=`<h2>${title}</h2>${bodyHtml}
+      <div class="row" style="margin-top:14px;flex-wrap:wrap">
+        <button id="cfCancel" class="alt">Cancel</button>
+        <button id="cfOk" class="${danger?"danger":""}" style="margin-left:auto">${okLabel}</button>
+      </div>`;
+    $("modal").style.display="flex";
+    $("cfCancel").onclick=()=>{modalLock=false;closeModal();resolve(false)};
+    $("cfOk").onclick=()=>{modalLock=false;closeModal();resolve(true)};
+  });
+}
+
+function cloudDialog(){
+  modalLock=true;
+  const savedEmail="";
+  $("mbox").innerHTML=`<h2>☁️ Cloud backup and restore</h2>
+  <p class="mu">Enter the email and password of the cloud account, then choose one action:</p>
+  <ul class="mu" style="padding-left:18px;margin:0 0 10px">
+    <li><b>Backup now</b> saves this phone's list to the cloud and <b>replaces</b> the copy already stored for this account.</li>
+    <li><b>Restore from cloud</b> loads the cloud copy and <b>replaces</b> the list on this phone.</li>
+  </ul>
+  <p class="mu">Your data is encrypted with this password before it leaves the device, so keep it safe.</p>
+  <input type="text" id="cEmail" placeholder="Email" value="${esc(savedEmail)}" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;margin-bottom:8px">
+  ${pwInput("cPw","Password")}
+  <div class="errmsg" id="cMsg"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="cUp">Backup now</button>
+    <button class="alt" id="cDown">Restore from cloud</button>
+    <button class="alt" id="cX" style="margin-left:auto">Close</button>
+  </div>`;
+  $("modal").style.display="flex";
+  $("cX").onclick=closeModal;
+  const setMsg=t=>{const el=$("cMsg");if(el)el.textContent=t};
+  const setBusy=on=>["cUp","cDown","cX"].forEach(id=>{const b=$(id);if(b)b.disabled=on});
+  const showError=(e,email)=>{
+    cloudDialog_reopen(email);
+    setTimeout(()=>setMsg(e.message||"Something went wrong. Try again."),0);
+  };
+
+  const run=async kind=>{
+    const email=$("cEmail").value.trim(),pw=$("cPw").value;
+    if(!email||!pw){setMsg("Enter the email and password.");return}
+    try{localStorage.setItem(KEYCE,email)}catch(e){}
+    const count=sims.length;
+
+    if(kind==="up"){
+      const emptyWarn=count===0
+        ?`<div class="warnbox"><b>Warning: this phone has no SIMs.</b> Backing up now will replace the cloud copy for <b>${esc(email)}</b> with an <b>empty list</b>. The old cloud backup cannot be recovered.</div>`
+        :"";
+      const ok=await askConfirm({
+        title:"⚠️ Replace the cloud backup?",
+        bodyHtml:`<p>This will <b>replace</b> the cloud backup for <b>${esc(email)}</b> with this phone's list (<b>${count}</b> SIM${count===1?"":"s"}).</p>
+          ${emptyWarn}
+          <p class="mu">The old cloud backup cannot be recovered. If you want to load the cloud copy instead, cancel and use Restore from cloud.</p>`,
+        okLabel:count===0?"Replace with empty list":"Yes, replace cloud backup",
+        danger:true
+      });
+      if(!ok){cloudDialog_reopen(email);return}
+      toast("Backing up to the cloud…");
+      try{
+        const obj=buildBackupObj();
+        obj.log=(obj.log||[]).slice(-1500);
+        await cloudUpload(email,pw,JSON.stringify(obj));
+        closeModal();toast("Cloud backup saved.");
+      }catch(e){
+        showError(e,email);
+      }
+      return;
+    }
+
+    setBusy(true);setMsg("Working…");
+    let obj;
+    try{
+      obj=await cloudDownload(email,pw);
+    }catch(e){
+      setBusy(false);setMsg(e.message||"Something went wrong. Try again.");
+      return;
+    }
+    if(!obj){setBusy(false);setMsg("No cloud backup for this account yet. Back up first.");return}
+    const n=(obj.sims||[]).length;
+    const ok=await askConfirm({
+      title:"⚠️ Replace this phone's list?",
+      bodyHtml:`<p>This will <b>replace</b> the SIMs on this phone (currently <b>${count}</b>) with the cloud copy (<b>${n}</b> SIM${n===1?"":"s"}) for <b>${esc(email)}</b>.</p>
+        <p class="mu">Anything on this phone that isn't in the cloud backup will be lost. Back up first if you want to keep it.</p>`,
+      okLabel:"Yes, restore from cloud",
+      danger:true
+    });
+    if(!ok){cloudDialog_reopen(email);return}
+    try{
+      const applied=applyBackupObj(obj);
+      closeModal();toast("Restored "+applied+" SIM(s) from the cloud");
+    }catch(e){
+      showError(e,email);
+    }
+  };
+  $("cUp").onclick=()=>run("up");
+  $("cDown").onclick=()=>run("down");
+}
+function cloudDialog_reopen(email){
+  try{localStorage.setItem(KEYCE,email)}catch(e){}
+  cloudDialog();
+}
+
+function cloudRestorePrompt(after){
+  modalLock=true;
+  const savedEmail="";
+  $("mbox").innerHTML=`<h2>☁️ Restore your data</h2>
+  <p class="mu">This device was reset. If you have a cloud backup, enter its email and password to restore it, or start fresh.</p>
+  <input type="text" id="rEmail" placeholder="Email" value="${esc(savedEmail)}" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;margin-bottom:8px">
+  ${pwInput("rPw","Password")}
+  <div class="errmsg" id="rMsg"></div>
+  <div class="row" style="flex-wrap:wrap">
+    <button id="rGo">Restore</button>
+    <button class="alt" id="rSkip" style="margin-left:auto">Start fresh</button>
+  </div>`;
+  $("modal").style.display="flex";
+  const finish=()=>{try{localStorage.removeItem(KEYRESTORE)}catch(e){}closeModal();after()};
+  $("rSkip").onclick=finish;
+  $("rGo").onclick=async()=>{
+    const email=$("rEmail").value.trim(),pw=$("rPw").value;
+    if(!email||!pw){$("rMsg").textContent="Enter the email and password.";return}
+    $("rGo").disabled=true;$("rSkip").disabled=true;
+    $("rMsg").textContent="Working…";
+    try{
+      const obj=await cloudDownload(email,pw);
+      if(!obj)throw new Error("No cloud backup for this account. You can start fresh.");
+      try{localStorage.setItem(KEYCE,email)}catch(e){}
+      const n=applyBackupObj(obj);
+      toast("Restored "+n+" SIM(s) from the cloud");
+      finish();
+    }catch(e){
+      $("rMsg").textContent=e.message||"Something went wrong. Try again.";
+      $("rGo").disabled=false;$("rSkip").disabled=false;
+    }
+  };
+}
+
+function applyBackupObj(obj){
+  const list=Array.isArray(obj)?obj:obj.sims;
+  if(!Array.isArray(list))throw new Error("Invalid backup.");
+  const clean=list.filter(s=>s&&normNum(s.number)).map(s=>normSim({...s,number:normNum(s.number)}));
+  sims=clean;
+  if(obj.cats&&Array.isArray(obj.cats))cats=obj.cats;
+  if(obj.log&&Array.isArray(obj.log))log=obj.log;
+  if(obj.brand&&typeof obj.brand==="object")brand={...brand,...obj.brand};
+  if(obj.theme&&typeof obj.theme==="object"){
+    brand={...brand,palette:obj.theme.palette||brand.palette,mode:obj.theme.mode||brand.mode,simColors:obj.theme.simColors||brand.simColors};
+  }
+  if(!brand.simColors||typeof brand.simColors!=="object")brand.simColors={};
+  saveAll();applyBrand();render();
+  return clean.length;
+}
+
+function applyBrand(){
+  const pal=PALETTES[brand.palette]||PALETTES.default;
+  isDark=brand.mode==="dark"||(brand.mode==="system"&&matchMedia("(prefers-color-scheme:dark)").matches);
+  const base=isDark?pal.dark:pal.light;
+  const r=document.documentElement.style;
+  r.setProperty("--bg",base.bg);r.setProperty("--card",base.card);r.setProperty("--tx",base.tx);
+  r.setProperty("--mu",base.mu);r.setProperty("--ln",base.ln);r.setProperty("--ac",pal.ac);
+  r.setProperty("--ok",isDark?"#34d399":"#16a34a");r.setProperty("--bad",isDark?"#f87171":"#dc2626");
+  r.setProperty("--glass",isDark?"rgba(22,26,34,.55)":"rgba(255,255,255,.55)");
+  r.setProperty("--glassb",isDark?"rgba(255,255,255,.12)":"rgba(255,255,255,.6)");
+  document.documentElement.style.colorScheme=isDark?"dark":"light";
+  $("menu").querySelector('[data-m="theme"]').textContent=isDark?"☀️ Light mode":"🌙 Dark mode";
+}
+
+function openMenu(v){$("menu").classList.toggle("show",v);$("scrim").classList.toggle("show",v)}
+function showWhatsNew(){
+  const c=CHANGES[0];
+  modalLock=false;
+  $("mbox").innerHTML=`<h2>📢 What's new</h2>
+    <div class="mu" style="margin-bottom:8px"><b>${esc(c.v)}</b></div>
+    <ul>${c.items.map(i=>`<li>${i}</li>`).join("")}</ul>
+    <div class="row"><button id="mClose">Close</button></div>`;
+  $("modal").style.display="flex";
+  $("mClose").onclick=closeModal;
+}
+function showWho(){
+  const av=CREATOR.img?`<img src="${esc(CREATOR.img)}" alt="${esc(CREATOR.name)}">`:esc((CREATOR.name||"?").charAt(0).toUpperCase());
+  $("mbox").innerHTML=`<h2>👤 Who made?</h2>
+  <p><b>SIM OTP Manager</b> is solely designed and made by <b>${esc(CREATOR.name)}</b> for OTP services.</p>
+  <p><b>Proper use:</b> use this app only to organize your own SIM numbers and records. Do not use it for fraud, scams, or any illegal activity.</p>
+  <p><b>Code ownership:</b> the source code, design, layout, and the way the site works belong to the original creator. Copying, re-uploading, selling, or rebranding it as your own is not allowed without written permission.</p>
+  <p><b>If someone steals it:</b> copying the code, design, layout, or how the site works without permission violates the creator's rights. The original creator reserves the right to take action. Any permitted copy or shared version must keep this credit.</p>
+  <p><b>Original creator:</b></p>
+  <div class="creator"><div class="avatar">${av}</div><b>${esc(CREATOR.name)}</b></div>
+  <div class="row" style="margin-top:14px"><button id="mClose">Close</button></div>`;
+  $("modal").style.display="flex";$("mClose").onclick=closeModal;
+}
+
+function buildBackupObj(){
+  return {app:"sim_otp_manager",version:APP_VERSION,exported:new Date().toISOString(),sims,cats,log,brand,
+    theme:{palette:brand.palette,mode:brand.mode,simColors:brand.simColors}};
+}
+function downloadBackup(){
+  const data=JSON.stringify(buildBackupObj(),null,2);
+  const blob=new Blob([data],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="sim-otp-backup-"+dayKey(new Date())+".txt";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("Backup saved (includes your theme)");
+}
+function restoreFile(file,inputEl){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const obj=JSON.parse(r.result);
+      const list=Array.isArray(obj)?obj:obj.sims;
+      if(!Array.isArray(list))throw new Error("bad");
+      if(!confirm(`Restore ${list.length} SIM(s)? This replaces the current list.`)){inputEl.value="";return}
+      const n=applyBackupObj(obj);
+      toast("Restored "+n+" SIM(s) and theme");
+    }catch(err){toast("Invalid backup file")}
+    inputEl.value="";
+  };
+  r.readAsText(file);
+}
+
+function parseSpoken(t){
+  return t.toLowerCase().split(/[\s,.\-]+/).map(tok=>{
+    if(/^\d+$/.test(tok))return tok;
+    return W[tok]!==undefined?String(W[tok]):"";
+  }).join("");
+}
+
+let scanCtrl=null,scanReader=null,zxingPromise=null;
+function loadScanner(){
+  if(window.ZXing)return Promise.resolve();
+  if(!zxingPromise){
+    zxingPromise=new Promise((res,rej)=>{
+      const s=document.createElement("script");
+      s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+      s.onload=res;
+      s.onerror=()=>{zxingPromise=null;rej(new Error("scanner failed to load"))};
+      document.head.appendChild(s);
+    });
+  }
+  return zxingPromise;
+}
+async function startScan(){
+  $("scan").style.display="block";
+  $("scanMsg").textContent="Loading camera…";
+  try{
+    await loadScanner();
+    $("scanMsg").textContent="Point the camera at the barcode on the SIM card. Don't scan the ICC number.";
+    scanReader=new ZXing.BrowserMultiFormatReader();
+    scanCtrl=await scanReader.decodeFromConstraints({video:{facingMode:"environment"}},$("vid"),res=>{
+      if(!res)return;
+      const txt=res.getText();
+      const n=normNum(txt);
+      if(!n){$("scanMsg").textContent="Not added: "+txt+" "+badReason(txt)+". Scan the SIM barcode, not the ICC number.";return}
+      if(sims.some(s=>s.number===n)){$("scanMsg").textContent=fmt(n)+" is already in the list. Keep scanning…";return}
+      sims.push(makeSim(n,"",$("carrier").value,flags()));
+      saveAll();render();toast("Added "+fmt(n));stopScan();
+    });
+  }catch(err){toast("Camera not available");stopScan()}
+}
+function stopScan(){
+  try{if(scanCtrl)scanCtrl.stop()}catch(e){}
+  scanCtrl=null;$("scan").style.display="none";
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(!t.closest("#menu,#menuBtn"))openMenu(false);
+  if(t.closest("#seeMore")){openMenu(false);showWhatsNew();return}
+  const noteEl=t.closest("[data-act='fullnote']");
+  if(noteEl){showFullNote(noteEl.dataset.id);return}
+  const tabBtn=t.closest("[data-tab]");
+  if(tabBtn){setTab(tabBtn.dataset.tab);return}
+  const copyEl=t.closest("[data-copy]");
+  if(copyEl){copyText(copyEl.dataset.copy);return}
+  const openEl=t.closest("[data-open]");
+  if(openEl){
+    openId=sims.find(x=>String(x.id)===openEl.dataset.open)?.id??null;
+    setTab("inv");
+    const card=document.querySelector(`#invList .card[data-id="${openEl.dataset.open}"]`);
+    if(card)setTimeout(()=>card.scrollIntoView({behavior:"smooth",block:"center"}),50);
+    return;
+  }
+  const hqEl=t.closest("[data-hq]");
+  if(hqEl){runSearch(hqEl.dataset.hq);return}
+  const simEl=t.closest("[data-simk]");
+  if(simEl){
+    brand.simColors[brandCar]=simEl.dataset.simk;
+    saveAll();applyBrand();render();renderBrand();return;
+  }
+  const setEl=t.closest("[data-set]");
+  if(setEl){
+    brand[setEl.dataset.set]=setEl.dataset.v;
+    saveAll();applyBrand();render();renderBrand();
+    return;
+  }
+  const menuEl=t.closest("[data-m]");
+  if(menuEl){
+    openMenu(false);
+    const m=menuEl.dataset.m;
+    if(m==="tut"){startTutorial()}
+    else if(m==="how"){
+      $("mbox").innerHTML=`<h2>📖 How to use</h2><ol>
+        <li><b>Inventory:</b> paste or type one or many numbers, pick the SIM from the dropdown, set box and status, then tap Add.</li>
+        <li><b>Scan barcode:</b> point the camera at the barcode on the SIM card. Don't scan the ICC number. The number is added once it's read.</li>
+        <li><b>Voice input:</b> tap 🗣️, allow the microphone, then say the digits one at a time. Check the result, then tap Add.</li>
+        <li>If a number is already in the list or has a problem, you'll see a message and can choose to continue without it.</li>
+        <li><b>Notes:</b> open ✏️ Edit on a SIM to add a short note. It shows on the card, and tapping it opens the full text.</li>
+        <li><b>Lookup:</b> search by number, <b>box 30</b>, <b>sim TNT</b>, or a site name.</li>
+        <li><b>Searches:</b> the 🕘 Searches tab shows what you searched today, your most searched items, and recent searches. Tap one to run it again.</li>
+        <li><b>Number List:</b> site boxes are hidden to keep it fast. Tap 👁 Show all site boxes, or ▼ Show sites on one number.</li>
+        <li><b>Password:</b> set one from the menu. If you forget it, all data on this device is deleted.</li>
+        <li><b>Cloud backup:</b> Backup now replaces the cloud copy for that account. Restore from cloud replaces the list on this phone. Both ask you to confirm first.</li>
+        <li><b>Sign out:</b> all saved numbers are deleted on this device. Back up first.</li></ol>
+        <div class="row"><button id="mClose">Close</button></div>`;
+      $("modal").style.display="flex";$("mClose").onclick=closeModal;
+    }
+    else if(m==="name")askName(false);
+    else if(m==="theme"){brand.mode=isDark?"light":"dark";saveAll();applyBrand();if(tab==="brand")renderBrand()}
+    else if(m==="pw")openPwMenu();
+    else if(m==="lock")lockNow();
+    else if(m==="save")downloadBackup();
+    else if(m==="restore")$("up").click();
+    else if(m==="cloud")cloudDialog();
+    else if(m==="log"){
+      $("mbox").innerHTML=`<h2>📝 Changelog</h2>`+CHANGES.map(c=>`<div class="mu" style="margin-top:6px"><b>${c.v}</b></div><ul style="padding-left:20px;margin:4px 0 10px">`+c.items.map(i=>`<li>${i}</li>`).join("")+`</ul>`).join("")
+        +`<div class="row"><button id="mClose">Close</button></div>`;
+      $("modal").style.display="flex";$("mClose").onclick=closeModal;
+    }
+    else if(m==="who")showWho();
+    else if(m==="logout")askLogout();
+    return;
+  }
+  const actEl=t.closest("[data-act]");
+  if(!actEl)return;
+  const act=actEl.dataset.act;
+  if(act==="applySite"){applySiteChange();return}
+  const card=actEl.closest("[data-id]");
+  const s=card?sims.find(x=>String(x.id)===card.dataset.id):null;
+  if(!s)return;
+  if(act==="copy")copyText(s.number);
+  else if(act==="edit")editSim(s.id);
+  else if(act==="del")deleteSim(s);
+  else if(act==="toggle"){openId=openId===s.id?null:s.id;render()}
+  else if(act==="nlCard"){nlOpen.has(s.id)?nlOpen.delete(s.id):nlOpen.add(s.id);renderSheet()}
+});
+
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.act==="chk"){
+    const card=t.closest("[data-id]");
+    const s=card?sims.find(x=>String(x.id)===card.dataset.id):null;
+    if(!s)return;
+    const y=window.scrollY;
+    toggleSite(s,t.dataset.site,t.checked);
+    render();window.scrollTo(0,y);
+    return;
+  }
+  if(t.id==="bAct"){$("bAddF").style.display=t.value==="add"?"":"none";$("bRemF").style.display=t.value==="rem"?"":"none"}
+  else if(t.id==="bCat"){$("bNewCat").style.display=t.value==="__new"?"block":"none"}
+  else if(t.id==="scCar"){brandCar=t.value;renderBrand()}
+  else if(t.name==="bScope"){$("bSelF").style.display=t.value==="sel"?"block":"none"}
+  else if(t.id==="bSelAll"){document.querySelectorAll("[data-bsel]").forEach(x=>x.checked=t.checked)}
+});
+
+let searchRecT=null;
+$("q").addEventListener("input",()=>{
+  renderLookup();
+  clearTimeout(searchRecT);
+  searchRecT=setTimeout(()=>recordSearch($("q").value),900);
+});
+$("q").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){clearTimeout(searchRecT);recordSearch($("q").value)}
+});
+$("nlq").addEventListener("input",renderSheet);
+$("nlAll").onclick=()=>{nlShow=!nlShow;renderSheet()};
+$("numIn").addEventListener("input",countInput);
+$("addBtn").onclick=addBulk;
+$("micBtn").onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Voice input not supported on this browser. Type the number instead.");return}
+  const rec=new SR();
+  rec.lang="en-PH";rec.interimResults=false;rec.maxAlternatives=1;
+  rec.onresult=e=>{
+    const d=parseSpoken(e.results[0][0].transcript);
+    $("numIn").value=($("numIn").value?$("numIn").value+" ":"")+d;
+    countInput();
+    toast("Check the number, then tap Add");
+  };
+  rec.onerror=()=>toast("Voice input failed. Check the mic permission and try again.");
+  rec.start();toast("Listening… say the digits one at a time");
+};
+$("scanBtn").onclick=startScan;
+$("stopBtn").onclick=stopScan;
+$("up").addEventListener("change",e=>{const f=e.target.files[0];if(f)restoreFile(f,e.target)});
+$("menuBtn").onclick=e=>{e.stopPropagation();openMenu(!$("menu").classList.contains("show"))};
+$("scrim").onclick=()=>openMenu(false);
+$("modal").addEventListener("click",e=>{if(e.target.id==="modal"&&!modalLock)closeModal()});
+$("lockGo").onclick=tryUnlock;
+$("lockPw").addEventListener("keydown",e=>{if(e.key==="Enter")tryUnlock()});
+$("lockForgot").onclick=forgotPw;
+matchMedia("(prefers-color-scheme:dark)").addEventListener?.("change",()=>{if(brand.mode==="system"){applyBrand();render();if(tab==="brand")renderBrand()}});
+let rzT=null;
+addEventListener("resize",()=>{clearTimeout(rzT);rzT=setTimeout(()=>{document.body.classList.toggle("wide",tab==="num"&&viewMode()==="comp");if(tab==="num")renderSheet()},150)});
+addEventListener("pagehide",()=>{if(started)saveAll()});
+
+let appStarted=false;
+async function startApp(){
+  if(appStarted)return;
+  appStarted=true;
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+  await loadData();
+  loadSearches();
+  loadName();applyBrand();
+  $("carrier").innerHTML=carrierOpts("");
+  $("verTxt").innerHTML=`Version ${APP_VERSION} · <span id="seeMore">See more</span>`;
+  refreshMenu();
+  document.body.classList.remove("auth-pending");
+  $("splash").style.display="none";
+  if(hasPw()){
+    lockNow();
+  }else{
+    started=true;
+    setTab("inv");
+    beginSession();
+  }
+}
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, getDocs, collection, setDoc, serverTimestamp, increment
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* How many devices one account may sign in from. Change this number if needed. */
+const MAX_DEVICES = 1;
+
+/* One-time forced sign-in notice. Only shown on these dates (device clock), until the user taps OK. */
+const KICK_FROM = new Date(2026,9,14,0,0,0);
+const KICK_TO   = new Date(2026,9,16,0,0,0);
+const KICK_KEY  = "sim_otp_kick_notice_v2";
+
+const fbApp = initializeApp({
+  apiKey: "AIzaSyBXprNKc3EI7xasUQCt9NEqGr_UaoW8ko0",
+  authDomain: "otp-manager-4818b.firebaseapp.com",
+  projectId: "otp-manager-4818b",
+  appId: "1:8987208306:web:02f1cba7e25ccaae6370eb"
+});
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const gate = document.getElementById("authGate");
+const splash = document.getElementById("splash");
+const gMsg = document.getElementById("agMsg");
+const gEmail = document.getElementById("agEmail");
+const gPass = document.getElementById("agPass");
+
+let pendingMsg = "";
+
+async function doSignIn(){
+  gMsg.textContent = "";
+  const email = gEmail.value.trim();
+  const pass = gPass.value;
+  if(!email || !pass){
+    gMsg.textContent = "Enter your email and password.";
+    return;
+  }
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    gMsg.textContent = "Sign-in failed. Check your email and password.";
+  }
+}
+document.getElementById("agIn").onclick = doSignIn;
+gPass.addEventListener("keydown", e => { if(e.key === "Enter") doSignIn(); });
+
+window.authSignOut = () => signOut(auth).then(() => location.reload()).catch(() => location.reload());
+
+function deviceId(){
+  let id = null;
+  try{ id = localStorage.getItem("deviceId"); }catch(e){}
+  if(!id){
+    id = crypto.randomUUID();
+    try{ localStorage.setItem("deviceId", id); }catch(e){}
+  }
+  return id;
+}
+
+async function checkDevice(user){
+  const id = deviceId();
+  const ids = (await getDocs(collection(db, "users", user.uid, "devices"))).docs.map(d => d.id);
+  if(!ids.includes(id) && ids.length >= MAX_DEVICES){
+    return `This account is already used on ${MAX_DEVICES} devices. Contact the seller to reset it.`;
+  }
+  const ref = doc(db, "users", user.uid, "devices", id);
+  const existing = await getDoc(ref);
+  const data = {
+    deviceId: id,
+    userAgent: navigator.userAgent.slice(0, 300),
+    lastSeen: serverTimestamp(),
+    loginCount: increment(1)
+  };
+  if(!existing.exists()) data.firstSeen = serverTimestamp();
+  await setDoc(ref, data, { merge: true });
+  return null;
+}
+
+function kickWindowOpen(){
+  const now = new Date();
+  return now >= KICK_FROM && now < KICK_TO;
+}
+function kickAlreadySeen(){
+  try{ return localStorage.getItem(KICK_KEY) === "1"; }catch(e){ return false; }
+}
+function markKickSeen(){
+  try{ localStorage.setItem(KICK_KEY, "1"); }catch(e){}
+}
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function showKickNotice(){
+  return new Promise(resolve=>{
+    let name = "";
+    try{ name = (localStorage.getItem("sim_otp_name_v1")||"").trim(); }catch(e){}
+    const who = name ? escHtml(name) : "user";
+    const box = document.createElement("div");
+    box.id = "kickNotice";
+    box.style.cssText = "position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)";
+    box.style.setProperty("display","flex","important");
+    box.innerHTML = `
+      <div style="background:#fff;color:#1a1d23;border-radius:14px;padding:20px;max-width:380px;width:100%;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+        <h2 style="margin:0 0 10px;font-size:17px">Hi there, ${who}</h2>
+        <p style="margin:0 0 12px">Sorry for the inconvenience. We need to log your account and log you back in. It only takes a few seconds.</p>
+        <p style="margin:0 0 16px;color:#6b7280;font-size:13px">Tap OK, then sign in again with your email and password.</p>
+        <button id="kickOk" style="width:100%;background:#2563eb;color:#fff;border:0;border-radius:8px;padding:12px;font:inherit;font-weight:600;cursor:pointer">OK</button>
+      </div>`;
+    document.body.appendChild(box);
+    document.getElementById("kickOk").onclick = () => { box.remove(); resolve(); };
+  });
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if(!user){
+    splash.style.display = "none";
+    document.body.classList.add("auth-pending");
+    gate.style.display = "flex";
+    if(pendingMsg){ gMsg.textContent = pendingMsg; pendingMsg = ""; }
+    return;
+  }
+  if(kickWindowOpen() && !kickAlreadySeen()){
+    gate.style.display = "none";
+    splash.style.display = "none";
+    await showKickNotice();
+    markKickSeen();
+    await signOut(auth);
+    location.reload();
+    return;
+  }
+  gMsg.textContent = "Checking your account…";
+  let blocked = null;
+  try{
+    blocked = await checkDevice(user);
+  }catch(e){
+    console.error("Device check failed", e);
+  }
+  if(blocked){
+    pendingMsg = blocked;
+    await signOut(auth);
+    return;
+  }
+  gate.style.display = "none";
+  startApp();
+});
+</script>
+</body>
+</html>
